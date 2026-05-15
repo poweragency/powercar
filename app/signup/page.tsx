@@ -25,10 +25,18 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
+    // Usa il dominio production se siamo su localhost, così il link
+    // nell'email funziona anche aperto da cellulare.
+    const origin =
+      typeof window !== "undefined" && window.location.hostname !== "localhost"
+        ? window.location.origin
+        : "https://crm-carrozzerie.vercel.app";
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: `${origin}/auth/confirm`,
         data: {
           workshop_name: workshopName,
           full_name: workshopName,
