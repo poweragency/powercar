@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   KanbanSquare,
-  Users,
   FolderKanban,
   LogOut,
   Wrench,
@@ -16,7 +15,6 @@ import { cn } from "@/lib/utils";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leads", label: "Lead", icon: KanbanSquare },
-  { href: "/customers", label: "Clienti", icon: Users },
   { href: "/cases", label: "Pratiche", icon: FolderKanban },
   { href: "/settings", label: "Impostazioni", icon: Settings },
 ];
@@ -40,7 +38,6 @@ export function Sidebar({
           <div className="text-sm font-semibold leading-tight truncate" title={workshopName}>
             {workshopName}
           </div>
-          <div className="text-[11px] text-text-subtle leading-tight">CRM Officina</div>
         </div>
       </div>
 

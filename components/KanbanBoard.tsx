@@ -7,7 +7,9 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  closestCorners,
+  pointerWithin,
+  rectIntersection,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
   useDroppable,
@@ -25,6 +27,21 @@ interface Props {
   initialLeads: Lead[];
 }
 
+const STATUS_SET = new Set<string>(LEAD_STATUS_ORDER);
+
+/**
+ * Per il kanban diamo PRIORITÀ alle colonne quando il puntatore è dentro una
+ * colonna, altrimenti usiamo l'intersezione rect. Questo evita che la
+ * collision detection "preferisca" una card vicina e ignori la colonna target.
+ */
+const kanbanCollision: CollisionDetection = (args) => {
+  const pointer = pointerWithin(args);
+  const columnHit = pointer.find((c) => STATUS_SET.has(String(c.id)));
+  if (columnHit) return [columnHit];
+  if (pointer.length > 0) return pointer;
+  return rectIntersection(args);
+};
+
 export function KanbanBoard({ initialLeads }: Props) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -36,7 +53,6 @@ export function KanbanBoard({ initialLeads }: Props) {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  // Realtime: refresh on insert/update/delete
   useEffect(() => {
     const channel = supabase
       .channel("leads-changes")
@@ -86,8 +102,8 @@ export function KanbanBoard({ initialLeads }: Props) {
 
   const activeLead = activeId ? leads.find((l) => l.id === activeId) : null;
 
-  function findStatusOfId(id: string): LeadStatus | null {
-    if (LEAD_STATUS_ORDER.includes(id as LeadStatus)) return id as LeadStatus;
+  function resolveStatus(id: string): LeadStatus | null {
+    if (STATUS_SET.has(id)) return id as LeadStatus;
     const lead = leads.find((l) => l.id === id);
     return lead?.status ?? null;
   }
@@ -97,16 +113,12 @@ export function KanbanBoard({ initialLeads }: Props) {
     const { active, over } = event;
     if (!over) return;
 
-    const fromStatus = findStatusOfId(String(active.id));
-    const toStatus = findStatusOfId(String(over.id));
-    if (!fromStatus || !toStatus) return;
-
     const draggedId = String(active.id);
-
-    // Solo cambio colonna (basic) — il riordino dentro la stessa colonna è opzionale
+    const fromStatus = resolveStatus(draggedId);
+    const toStatus = resolveStatus(String(over.id));
+    if (!fromStatus || !toStatus) return;
     if (fromStatus === toStatus) return;
 
-    // Optimistic update
     setLeads((prev) =>
       prev.map((l) => (l.id === draggedId ? { ...l, status: toStatus } : l))
     );
@@ -118,7 +130,6 @@ export function KanbanBoard({ initialLeads }: Props) {
 
     if (error) {
       console.error(error);
-      // Rollback
       setLeads((prev) =>
         prev.map((l) => (l.id === draggedId ? { ...l, status: fromStatus } : l))
       );
@@ -161,12 +172,12 @@ export function KanbanBoard({ initialLeads }: Props) {
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={kanbanCollision}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragCancel={() => setActiveId(null)}
         >
-          <div className="flex gap-4 p-6 h-full min-w-max">
+          <div className="flex gap-2 p-4 h-full min-w-max">
             {LEAD_STATUS_ORDER.map((status) => (
               <KanbanColumn
                 key={status}
@@ -211,25 +222,23 @@ function KanbanColumn({
   const colors = LEAD_STATUS_COLORS[status];
 
   return (
-    <div className="w-72 shrink-0 flex flex-col h-full">
-      <div className="px-3 py-2 mb-3 flex items-center gap-2">
-        <span className={cn("w-2 h-2 rounded-full", colors.dot)} />
-        <h3 className="text-sm font-semibold">{LEAD_STATUS_LABELS[status]}</h3>
-        <span className="text-xs text-text-subtle ml-1">{leads.length}</span>
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "w-48 shrink-0 flex flex-col h-full rounded-lg border border-dashed transition-colors",
+        isOver ? "border-accent bg-accent/5" : "border-transparent"
+      )}
+    >
+      <div className="px-2 py-1.5 flex items-center gap-1.5 shrink-0">
+        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", colors.dot)} />
+        <h3 className="text-xs font-semibold truncate">{LEAD_STATUS_LABELS[status]}</h3>
+        <span className="text-[10px] text-text-subtle ml-auto tabular-nums">{leads.length}</span>
       </div>
 
       <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-        <div
-          ref={setNodeRef}
-          className={cn(
-            "flex-1 space-y-2 p-2 rounded-lg border border-dashed transition-colors overflow-y-auto",
-            isOver ? "border-accent bg-accent/5" : "border-transparent"
-          )}
-        >
+        <div className="flex-1 space-y-1.5 p-1.5 overflow-y-auto">
           {leads.length === 0 && (
-            <div className="text-center text-xs text-text-subtle py-8">
-              Trascina qui
-            </div>
+            <div className="text-center text-[10px] text-text-subtle py-6">—</div>
           )}
           {leads.map((lead) => (
             <LeadCard key={lead.id} lead={lead} onClick={() => onCardClick(lead)} />
