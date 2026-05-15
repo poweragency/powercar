@@ -111,10 +111,20 @@ export function Sidebar({ userEmail, workshopName, open, onClose }: Props) {
         </nav>
 
         <div className="p-3 border-t border-border">
-          <div className="px-3 py-2 mb-2">
-            <div className="text-xs text-text-subtle">Account</div>
-            <div className="text-xs text-text-muted truncate" title={userEmail}>
-              {userEmail}
+          <div className="flex items-center gap-3 px-3 py-2 mb-2">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-accent-hover text-white text-xs font-semibold flex items-center justify-center shrink-0 shadow-card">
+              {(userEmail[0] ?? "?").toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] uppercase tracking-wide text-text-subtle">
+                Account
+              </div>
+              <div
+                className="text-xs text-text-muted truncate"
+                title={userEmail}
+              >
+                {userEmail}
+              </div>
             </div>
           </div>
           <form action="/auth/signout" method="post">

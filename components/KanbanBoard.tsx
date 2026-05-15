@@ -239,14 +239,22 @@ function KanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "w-48 shrink-0 flex flex-col h-full rounded-lg border border-dashed transition-colors",
+        "w-52 shrink-0 flex flex-col h-full rounded-lg border border-dashed transition-colors overflow-hidden",
         isOver ? "border-accent bg-accent/5" : "border-transparent"
       )}
     >
-      <div className="px-2 py-1.5 flex items-center gap-1.5 shrink-0">
-        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", colors.dot)} />
-        <h3 className="text-xs font-semibold truncate">{LEAD_STATUS_LABELS[status]}</h3>
-        <span className="text-[10px] text-text-subtle ml-auto tabular-nums">{leads.length}</span>
+      <div
+        className={cn("h-0.5 shrink-0 rounded-t", colors.dot)}
+        aria-hidden="true"
+      />
+      <div className="px-2.5 py-2 flex items-center gap-2 shrink-0">
+        <span className={cn("w-2 h-2 rounded-full shrink-0", colors.dot)} />
+        <h3 className="text-xs font-semibold truncate uppercase tracking-wide">
+          {LEAD_STATUS_LABELS[status]}
+        </h3>
+        <span className="text-[10px] text-text-muted ml-auto tabular-nums px-1.5 py-0.5 rounded bg-bg-hover">
+          {leads.length}
+        </span>
       </div>
 
       <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>

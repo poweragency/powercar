@@ -324,27 +324,16 @@ export function CaseDetail({
       </div>
 
       <div className="card p-4 mb-5">
-        <div className="text-xs text-text-muted mb-2">Stato pratica</div>
-        <div className="flex flex-wrap gap-2">
-          {CASE_STATUS_ORDER.map((s: CaseStatus) => (
-            <button
-              key={s}
-              onClick={() => {
-                setCaseForm((f) => ({ ...f, status: s }));
-                setDirty(true);
-              }}
-              className={cn(
-                "text-xs font-medium px-3 py-1.5 rounded-md transition-colors border",
-                caseForm.status === s
-                  ? "bg-accent border-accent text-white"
-                  : "bg-bg-hover border-border text-text-muted hover:text-text hover:border-border-hover"
-              )}
-              type="button"
-            >
-              {CASE_STATUS_LABELS[s]}
-            </button>
-          ))}
+        <div className="text-xs uppercase tracking-wide text-text-subtle mb-3 font-semibold">
+          Stato pratica
         </div>
+        <CaseStatusTimeline
+          current={caseForm.status}
+          onChange={(s) => {
+            setCaseForm((f) => ({ ...f, status: s }));
+            setDirty(true);
+          }}
+        />
       </div>
 
       <div className="card p-6 mb-5 space-y-6">
@@ -436,6 +425,71 @@ export function CaseDetail({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CaseStatusTimeline({
+  current,
+  onChange,
+}: {
+  current: CaseStatus;
+  onChange: (s: CaseStatus) => void;
+}) {
+  const currentIdx = CASE_STATUS_ORDER.indexOf(current);
+  return (
+    <div className="relative">
+      <div className="flex items-center justify-between gap-1 sm:gap-2">
+        {CASE_STATUS_ORDER.map((s, i) => {
+          const isCurrent = i === currentIdx;
+          const isDone = i < currentIdx;
+          return (
+            <div key={s} className="flex-1 flex flex-col items-center min-w-0">
+              <button
+                onClick={() => onChange(s)}
+                type="button"
+                className={cn(
+                  "relative w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-semibold transition-all",
+                  isCurrent &&
+                    "bg-accent border-accent text-white shadow-[0_0_0_4px_rgba(249,115,22,0.2)]",
+                  isDone && "bg-accent/30 border-accent/60 text-accent",
+                  !isCurrent && !isDone &&
+                    "bg-bg-hover border-border text-text-subtle hover:border-border-hover hover:text-text"
+                )}
+                aria-label={CASE_STATUS_LABELS[s]}
+              >
+                {isDone ? "✓" : i + 1}
+              </button>
+              <span
+                className={cn(
+                  "text-[10px] mt-1.5 text-center truncate w-full",
+                  isCurrent
+                    ? "text-accent font-semibold"
+                    : isDone
+                      ? "text-text-muted"
+                      : "text-text-subtle"
+                )}
+              >
+                {CASE_STATUS_LABELS[s]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div
+        className="absolute top-3.5 left-[10%] right-[10%] h-px bg-border -z-0"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute top-3.5 left-[10%] h-px bg-accent/60 -z-0 transition-all"
+        style={{
+          width:
+            currentIdx > 0
+              ? `${(currentIdx / (CASE_STATUS_ORDER.length - 1)) * 80}%`
+              : "0%",
+        }}
+        aria-hidden="true"
+      />
     </div>
   );
 }

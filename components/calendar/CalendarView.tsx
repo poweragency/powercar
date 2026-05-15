@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, X, Search } from "lucide-react";
 import {
+  addDays,
   addMonths,
+  addWeeks,
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
@@ -13,6 +15,7 @@ import {
   startOfMonth,
   startOfWeek,
   subMonths,
+  subWeeks,
 } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -51,6 +54,7 @@ export function CalendarView({ initialAppointments, customers, cases }: Props) {
   >(null);
   const [dayPanelDate, setDayPanelDate] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"month" | "week">("month");
 
   const customerById = useMemo(() => {
     const m = new Map<string, string>();
@@ -80,10 +84,14 @@ export function CalendarView({ initialAppointments, customers, cases }: Props) {
   }, [dayPanelDate]);
 
   const days = useMemo(() => {
+    if (view === "week") {
+      const start = startOfWeek(cursor, { weekStartsOn: 1 });
+      return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    }
     const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 });
     const end = endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 });
     return eachDayOfInterval({ start, end });
-  }, [cursor]);
+  }, [cursor, view]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, Appointment[]>();
@@ -120,6 +128,18 @@ export function CalendarView({ initialAppointments, customers, cases }: Props) {
 
   const today = new Date();
   const monthLabel = format(cursor, "MMMM yyyy", { locale: it });
+  const weekStart = startOfWeek(cursor, { weekStartsOn: 1 });
+  const weekEnd = addDays(weekStart, 6);
+  const weekLabel = `${format(weekStart, "d MMM", { locale: it })} – ${format(weekEnd, "d MMM yyyy", { locale: it })}`;
+
+  function navigatePrev() {
+    if (view === "week") setCursor((c) => subWeeks(c, 1));
+    else setCursor((c) => subMonths(c, 1));
+  }
+  function navigateNext() {
+    if (view === "week") setCursor((c) => addWeeks(c, 1));
+    else setCursor((c) => addMonths(c, 1));
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -145,11 +165,37 @@ export function CalendarView({ initialAppointments, customers, cases }: Props) {
               className="input-base pl-8 w-56"
             />
           </div>
+          <div className="flex items-center gap-1 bg-bg-hover rounded-md p-0.5 border border-border">
+            <button
+              onClick={() => setView("month")}
+              className={cn(
+                "text-xs font-medium px-2.5 py-1 rounded transition-colors",
+                view === "month"
+                  ? "bg-accent text-white"
+                  : "text-text-muted hover:text-text"
+              )}
+              type="button"
+            >
+              Mese
+            </button>
+            <button
+              onClick={() => setView("week")}
+              className={cn(
+                "text-xs font-medium px-2.5 py-1 rounded transition-colors",
+                view === "week"
+                  ? "bg-accent text-white"
+                  : "text-text-muted hover:text-text"
+              )}
+              type="button"
+            >
+              Settimana
+            </button>
+          </div>
           <button
-            onClick={() => setCursor((c) => subMonths(c, 1))}
+            onClick={navigatePrev}
             className="btn-secondary py-1.5 px-2"
             type="button"
-            aria-label="Mese precedente"
+            aria-label={view === "week" ? "Settimana precedente" : "Mese precedente"}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -161,15 +207,15 @@ export function CalendarView({ initialAppointments, customers, cases }: Props) {
             Oggi
           </button>
           <button
-            onClick={() => setCursor((c) => addMonths(c, 1))}
+            onClick={navigateNext}
             className="btn-secondary py-1.5 px-2"
             type="button"
-            aria-label="Mese successivo"
+            aria-label={view === "week" ? "Settimana successiva" : "Mese successivo"}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
-          <div className="text-sm font-medium capitalize px-3 min-w-[160px] text-center">
-            {monthLabel}
+          <div className="text-sm font-medium capitalize px-3 min-w-[180px] text-center">
+            {view === "week" ? weekLabel : monthLabel}
           </div>
           <button
             onClick={() =>
@@ -200,12 +246,14 @@ export function CalendarView({ initialAppointments, customers, cases }: Props) {
             const inMonth = isSameMonth(day, cursor);
             const isToday = isSameDay(day, today);
 
+            const maxVisible = view === "week" ? 12 : 3;
             return (
               <div
                 key={key}
                 className={cn(
-                  "bg-bg-card min-h-[110px] p-1.5 transition-colors hover:bg-bg-hover cursor-pointer flex flex-col gap-1",
-                  !inMonth && "opacity-50"
+                  "bg-bg-card p-1.5 transition-colors hover:bg-bg-hover cursor-pointer flex flex-col gap-1",
+                  view === "week" ? "min-h-[420px]" : "min-h-[110px]",
+                  !inMonth && view === "month" && "opacity-50"
                 )}
                 onClick={() => setModal({ mode: "new", date: key })}
               >
@@ -213,11 +261,14 @@ export function CalendarView({ initialAppointments, customers, cases }: Props) {
                   <span
                     className={cn(
                       "text-xs tabular-nums font-medium",
+                      view === "week" && "text-sm",
                       isToday &&
                         "bg-accent text-white rounded-full w-5 h-5 flex items-center justify-center"
                     )}
                   >
-                    {format(day, "d")}
+                    {view === "week"
+                      ? format(day, "d MMM", { locale: it })
+                      : format(day, "d")}
                   </span>
                   {apts.length > 0 && (
                     <span className="text-[9px] text-text-subtle tabular-nums">
@@ -226,7 +277,7 @@ export function CalendarView({ initialAppointments, customers, cases }: Props) {
                   )}
                 </div>
                 <div className="space-y-1 overflow-hidden">
-                  {apts.slice(0, 3).map((a) => (
+                  {apts.slice(0, maxVisible).map((a) => (
                     <button
                       key={a.id}
                       onClick={(e) => {
@@ -243,7 +294,7 @@ export function CalendarView({ initialAppointments, customers, cases }: Props) {
                       {format(new Date(a.starts_at), "HH:mm")} {a.title}
                     </button>
                   ))}
-                  {apts.length > 3 && (
+                  {apts.length > maxVisible && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -252,7 +303,7 @@ export function CalendarView({ initialAppointments, customers, cases }: Props) {
                       className="text-[10px] text-accent hover:underline pl-1 text-left"
                       type="button"
                     >
-                      +{apts.length - 3} altri →
+                      +{apts.length - maxVisible} altri →
                     </button>
                   )}
                 </div>
@@ -317,7 +368,7 @@ function DayPanel({
         aria-hidden="true"
       />
       <aside
-        className="fixed top-0 right-0 h-screen w-full sm:w-96 bg-bg-card border-l border-border z-50 flex flex-col shadow-xl"
+        className="fixed top-0 right-0 h-screen w-full sm:w-96 bg-bg-card border-l border-border z-50 flex flex-col shadow-xl animate-slide-in-right"
       >
         <div className="px-5 h-16 flex items-center justify-between border-b border-border shrink-0">
           <div className="min-w-0">

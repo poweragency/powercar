@@ -67,13 +67,13 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       {children}
       {state && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
           onClick={() => close(false)}
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="w-full max-w-md bg-bg-card border border-border rounded-xl shadow-card-hover overflow-hidden"
+            className="w-full max-w-md bg-bg-card border border-border rounded-xl shadow-card-hover overflow-hidden animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 p-5 pb-3">

@@ -7,7 +7,18 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { CASE_STATUS_LABELS, CASE_STATUS_ORDER } from "@/lib/constants";
 import { CaseStatusBadge } from "./CaseStatusBadge";
-import { formatCurrency, formatDate, initials } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, initials } from "@/lib/utils";
+
+const AVATAR_COLORS = [
+  "bg-blue-500/20 text-blue-300",
+  "bg-emerald-500/20 text-emerald-300",
+  "bg-purple-500/20 text-purple-300",
+  "bg-yellow-500/20 text-yellow-300",
+  "bg-pink-500/20 text-pink-300",
+  "bg-cyan-500/20 text-cyan-300",
+  "bg-orange-500/20 text-orange-300",
+  "bg-red-500/20 text-red-300",
+];
 import {
   customerFormSchema,
   vehicleFormSchema,
@@ -125,15 +136,28 @@ export function CasesTable({
                   </td>
                 </tr>
               ) : (
-                filtered.map((c) => (
+                filtered.map((c, idx) => {
+                  const avatarColor = AVATAR_COLORS[
+                    (c.customers?.full_name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length
+                  ];
+                  return (
                   <tr
                     key={c.id}
                     onClick={() => router.push(`/cases/${c.id}`)}
-                    className="hover:bg-bg-hover transition-colors cursor-pointer"
+                    className={cn(
+                      "transition-colors cursor-pointer group border-l-2 border-transparent",
+                      idx % 2 === 1 && "bg-bg-hover/30",
+                      "hover:bg-bg-hover hover:border-l-accent"
+                    )}
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-7 h-7 rounded-full bg-accent/20 text-accent text-[11px] font-medium flex items-center justify-center shrink-0">
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-full text-[11px] font-semibold flex items-center justify-center shrink-0 ring-2 ring-transparent group-hover:ring-accent/30 transition-all",
+                            avatarColor
+                          )}
+                        >
                           {initials(c.customers?.full_name ?? "?")}
                         </div>
                         <span className="text-sm font-medium truncate">
@@ -183,7 +207,8 @@ export function CasesTable({
                       {formatDate(c.created_at)}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
