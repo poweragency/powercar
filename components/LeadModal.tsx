@@ -28,6 +28,33 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
   const [newNote, setNewNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof LeadFormValues, string>>>({});
+  const [dirty, setDirty] = useState(false);
+
+  function attemptClose() {
+    if (dirty && !confirm("Ci sono modifiche non salvate. Chiudere comunque?")) {
+      return;
+    }
+    onClose();
+  }
+
+  useEffect(() => {
+    if (!dirty) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") attemptClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty]);
 
   useEffect(() => {
     if (!lead) return;
@@ -48,6 +75,7 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
   function setField<K extends keyof LeadFormValues>(key: K, value: LeadFormValues[K]) {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: undefined }));
+    setDirty(true);
   }
 
   async function handleSave() {
@@ -75,6 +103,7 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
         if (error) throw new Error(error.message);
         toast.success("Lead creato");
       }
+      setDirty(false);
       onSaved();
     } catch (e) {
       toast.error("Salvataggio fallito", {
@@ -116,7 +145,7 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
   return (
     <div
       className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
+      onClick={attemptClose}
     >
       <div
         className="card w-full max-w-lg max-h-[90vh] overflow-auto"
@@ -125,8 +154,20 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-base font-semibold">
             {lead ? "Modifica lead" : "Nuovo lead"}
+            {dirty && (
+              <span
+                className="ml-2 text-[11px] text-yellow-400"
+                title="Modifiche non salvate"
+              >
+                ●
+              </span>
+            )}
           </h2>
-          <button onClick={onClose} className="text-text-muted hover:text-text" type="button">
+          <button
+            onClick={attemptClose}
+            className="text-text-muted hover:text-text"
+            type="button"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -242,7 +283,7 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
             <span />
           )}
           <div className="flex gap-2">
-            <button onClick={onClose} className="btn-secondary" type="button">
+            <button onClick={attemptClose} className="btn-secondary" type="button">
               Annulla
             </button>
             <button onClick={handleSave} disabled={saving} className="btn-primary" type="button">

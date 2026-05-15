@@ -2,13 +2,13 @@
 
 import { Plus } from "lucide-react";
 import { Field, Section } from "./Field";
-import type { VehicleFormValues } from "@/lib/schemas";
+import type { VehicleFormInputValues } from "@/lib/schemas";
 import type { Vehicle } from "@/types/database.types";
 
 interface Props {
-  values: VehicleFormValues;
-  errors?: Partial<Record<keyof VehicleFormValues, string>>;
-  onChange: (patch: Partial<VehicleFormValues>) => void;
+  values: VehicleFormInputValues;
+  errors?: Partial<Record<keyof VehicleFormInputValues, string>>;
+  onChange: (patch: Partial<VehicleFormInputValues>) => void;
   vehicles: Vehicle[];
   selectedVehicleId: string | null;
   onSelectVehicle: (id: string | null) => void;
@@ -92,11 +92,7 @@ export function VehiclePanel({
             id="vehicle-year"
             type="number"
             value={values.year ?? ""}
-            onChange={(e) =>
-              onChange({
-                year: e.target.value === "" ? null : (Number(e.target.value) as never),
-              })
-            }
+            onChange={(e) => onChange({ year: e.target.value || null })}
             className="input-base"
             placeholder="2020"
             min={1900}

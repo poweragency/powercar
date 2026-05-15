@@ -14,7 +14,7 @@ import {
   vehicleFormSchema,
   caseFormSchema,
   type CustomerFormValues,
-  type VehicleFormValues,
+  type VehicleFormInputValues,
   type CaseFormInputValues,
 } from "@/lib/schemas";
 import { CustomerPanel } from "./case/CustomerPanel";
@@ -52,19 +52,19 @@ interface Props {
 
 type FieldErrors = Record<string, string>;
 
-function vehicleToForm(v: Vehicle | null): VehicleFormValues {
+function vehicleToForm(v: Vehicle | null): VehicleFormInputValues {
   return {
     make: v?.make ?? null,
     model: v?.model ?? null,
     plate: v?.plate ?? null,
-    year: v?.year ?? null,
+    year: v?.year != null ? String(v.year) : null,
     color: v?.color ?? null,
     vin: v?.vin ?? null,
     notes: v?.notes ?? null,
   };
 }
 
-const emptyVehicleForm: VehicleFormValues = {
+const emptyVehicleForm: VehicleFormInputValues = {
   make: null,
   model: null,
   plate: null,
@@ -101,7 +101,7 @@ export function CaseDetail({
     phone: initialCase.customers?.phone ?? null,
     email: initialCase.customers?.email ?? null,
   });
-  const [vehicleForm, setVehicleForm] = useState<VehicleFormValues>(
+  const [vehicleForm, setVehicleForm] = useState<VehicleFormInputValues>(
     vehicleToForm(initialSelectedVehicle)
   );
   const [caseForm, setCaseForm] = useState<CaseFormInputValues>({

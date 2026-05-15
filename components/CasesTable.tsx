@@ -13,7 +13,7 @@ import {
   vehicleFormSchema,
   caseFormSchema,
   type CustomerFormValues,
-  type VehicleFormValues,
+  type VehicleFormInputValues,
 } from "@/lib/schemas";
 import { CustomerPanel } from "./case/CustomerPanel";
 import { VehiclePanel } from "./case/VehiclePanel";
@@ -203,7 +203,7 @@ export function CasesTable({
   );
 }
 
-const emptyVehicle: VehicleFormValues = {
+const emptyVehicle: VehicleFormInputValues = {
   make: null,
   model: null,
   plate: null,
@@ -226,7 +226,7 @@ function NewCaseModal({
     phone: null,
     email: null,
   });
-  const [vehicle, setVehicle] = useState<VehicleFormValues>(emptyVehicle);
+  const [vehicle, setVehicle] = useState<VehicleFormInputValues>(emptyVehicle);
   const [caseForm, setCaseForm] = useState({
     status: "preventivo" as CaseStatus,
     insurance_company: null as string | null,

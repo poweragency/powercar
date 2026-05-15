@@ -81,6 +81,17 @@ export const vehicleFormSchema = z.object({
 
 export type VehicleFormValues = z.infer<typeof vehicleFormSchema>;
 
+// Form input: year arriva come string dall'input HTML, Zod la converte a number
+export type VehicleFormInputValues = {
+  make: string | null;
+  model: string | null;
+  plate: string | null;
+  year: string | null;
+  color: string | null;
+  vin: string | null;
+  notes: string | null;
+};
+
 // ============================================================
 // CASE
 // ============================================================
