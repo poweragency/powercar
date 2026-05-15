@@ -116,12 +116,57 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
 
   async function handleDelete() {
     if (!lead) return;
-    if (!confirm("Eliminare definitivamente questo lead?")) return;
+
+    // Conta cosa verrà eliminato in cascata
+    const { data: customers } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("lead_id", lead.id);
+    const customerIds = customers?.map((c) => c.id) ?? [];
+
+    let caseCount = 0;
+    let invoiceCount = 0;
+    if (customerIds.length > 0) {
+      const [{ count: cc }, { count: ic }] = await Promise.all([
+        supabase
+          .from("cases")
+          .select("id", { count: "exact", head: true })
+          .in("customer_id", customerIds),
+        supabase
+          .from("invoices")
+          .select("id", { count: "exact", head: true })
+          .in("customer_id", customerIds),
+      ]);
+      caseCount = cc ?? 0;
+      invoiceCount = ic ?? 0;
+    }
+
+    const parts: string[] = [];
+    if (customerIds.length > 0)
+      parts.push(`${customerIds.length} ${customerIds.length === 1 ? "cliente" : "clienti"}`);
+    if (caseCount > 0)
+      parts.push(`${caseCount} ${caseCount === 1 ? "pratica" : "pratiche"}`);
+    if (invoiceCount > 0)
+      parts.push(`${invoiceCount} preventivi/fatture`);
+
+    const detail =
+      parts.length > 0
+        ? `\n\nVerranno eliminati anche: ${parts.join(", ")}.`
+        : "";
+
+    if (
+      !confirm(
+        `Eliminare definitivamente il lead "${lead.full_name}"?${detail}\n\nAzione irreversibile.`
+      )
+    )
+      return;
+
     const { error } = await supabase.from("leads").delete().eq("id", lead.id);
     if (error) {
       toast.error("Eliminazione fallita", { description: error.message });
       return;
     }
+    setDirty(false);
     toast.success("Lead eliminato");
     onSaved();
   }
