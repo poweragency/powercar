@@ -15,6 +15,7 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, LEAD_STATUS_ORDER } from "@/lib/constants";
 import type { Lead, LeadStatus } from "@/types/database.types";
@@ -29,11 +30,6 @@ interface Props {
 
 const STATUS_SET = new Set<string>(LEAD_STATUS_ORDER);
 
-/**
- * Per il kanban diamo PRIORITÀ alle colonne quando il puntatore è dentro una
- * colonna, altrimenti usiamo l'intersezione rect. Questo evita che la
- * collision detection "preferisca" una card vicina e ignori la colonna target.
- */
 const kanbanCollision: CollisionDetection = (args) => {
   const pointer = pointerWithin(args);
   const columnHit = pointer.find((c) => STATUS_SET.has(String(c.id)));
@@ -47,7 +43,7 @@ export function KanbanBoard({ initialLeads }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [modalLead, setModalLead] = useState<Lead | "new" | null>(null);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -58,14 +54,29 @@ export function KanbanBoard({ initialLeads }: Props) {
       .channel("leads-changes")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "leads" },
-        async () => {
-          const { data } = await supabase
-            .from("leads")
-            .select("*")
-            .order("position", { ascending: true })
-            .order("created_at", { ascending: false });
-          if (data) setLeads(data);
+        { event: "INSERT", schema: "public", table: "leads" },
+        (payload) => {
+          const row = payload.new as Lead;
+          setLeads((prev) =>
+            prev.some((l) => l.id === row.id) ? prev : [row, ...prev]
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "leads" },
+        (payload) => {
+          const row = payload.new as Lead;
+          setLeads((prev) => prev.map((l) => (l.id === row.id ? row : l)));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "leads" },
+        (payload) => {
+          const oldRow = payload.old as { id?: string };
+          if (!oldRow.id) return;
+          setLeads((prev) => prev.filter((l) => l.id !== oldRow.id));
         }
       )
       .subscribe();
@@ -129,11 +140,14 @@ export function KanbanBoard({ initialLeads }: Props) {
       .eq("id", draggedId);
 
     if (error) {
-      console.error(error);
       setLeads((prev) =>
         prev.map((l) => (l.id === draggedId ? { ...l, status: fromStatus } : l))
       );
-      alert("Errore nello spostamento: " + error.message);
+      toast.error("Spostamento fallito", { description: error.message });
+    } else if (toStatus === "cliente" && fromStatus !== "cliente") {
+      toast.success("Cliente creato", {
+        description: "Cliente e pratica generati automaticamente.",
+      });
     }
   }
 
@@ -162,7 +176,7 @@ export function KanbanBoard({ initialLeads }: Props) {
               className="input-base pl-8 w-56"
             />
           </div>
-          <button onClick={() => setModalLead("new")} className="btn-primary">
+          <button onClick={() => setModalLead("new")} className="btn-primary" type="button">
             <Plus className="w-4 h-4" strokeWidth={2.5} />
             Nuovo lead
           </button>

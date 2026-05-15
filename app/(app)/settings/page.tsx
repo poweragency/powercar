@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "@/components/SettingsForm";
 
@@ -16,6 +16,8 @@ export default async function SettingsPage() {
     .select("*")
     .eq("id", user.id)
     .single();
+
+  if (!profile) notFound();
 
   return <SettingsForm initialProfile={profile} userEmail={user.email ?? ""} />;
 }

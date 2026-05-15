@@ -1,80 +1,88 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_ORDER } from "@/lib/constants";
-import type { Lead, LeadStatus, Note } from "@/types/database.types";
+import { leadFormSchema, type LeadFormValues } from "@/lib/schemas";
+import type { Lead, Note } from "@/types/database.types";
 import { formatDateTime } from "@/lib/utils";
 
 interface Props {
-  lead: Lead | null; // null = nuovo
+  lead: Lead | null;
   onClose: () => void;
   onSaved: () => void;
 }
 
 export function LeadModal({ lead, onClose, onSaved }: Props) {
-  const supabase = createClient();
-  const [fullName, setFullName] = useState(lead?.full_name ?? "");
-  const [phone, setPhone] = useState(lead?.phone ?? "");
-  const [email, setEmail] = useState(lead?.email ?? "");
-  const [message, setMessage] = useState(lead?.message ?? "");
-  const [status, setStatus] = useState<LeadStatus>(lead?.status ?? "nuovo");
+  const supabase = useMemo(() => createClient(), []);
+  const [form, setForm] = useState<LeadFormValues>({
+    full_name: lead?.full_name ?? "",
+    phone: lead?.phone ?? null,
+    email: lead?.email ?? null,
+    message: lead?.message ?? null,
+    status: lead?.status ?? "nuovo",
+  });
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<keyof LeadFormValues, string>>>({});
 
   useEffect(() => {
     if (!lead) return;
+    let cancelled = false;
     supabase
       .from("notes")
       .select("*")
       .eq("lead_id", lead.id)
       .order("created_at", { ascending: false })
-      .then(({ data }) => data && setNotes(data));
+      .then(({ data }) => {
+        if (!cancelled && data) setNotes(data);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [lead, supabase]);
 
+  function setField<K extends keyof LeadFormValues>(key: K, value: LeadFormValues[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((e) => ({ ...e, [key]: undefined }));
+  }
+
   async function handleSave() {
-    if (!fullName.trim()) {
-      setError("Il nome è obbligatorio");
+    const result = leadFormSchema.safeParse(form);
+    if (!result.success) {
+      const flat: Partial<Record<keyof LeadFormValues, string>> = {};
+      for (const issue of result.error.issues) {
+        flat[issue.path[0] as keyof LeadFormValues] = issue.message;
+      }
+      setErrors(flat);
+      toast.error("Controlla i campi");
       return;
     }
     setSaving(true);
-    setError(null);
-
-    if (lead) {
-      const { error } = await supabase
-        .from("leads")
-        .update({
-          full_name: fullName,
-          phone: phone || null,
-          email: email || null,
-          message: message || null,
-          status,
-        })
-        .eq("id", lead.id);
-      if (error) {
-        setError(error.message);
-        setSaving(false);
-        return;
+    const payload = result.data;
+    try {
+      if (lead) {
+        const { error } = await supabase.from("leads").update(payload).eq("id", lead.id);
+        if (error) throw new Error(error.message);
+        toast.success("Lead aggiornato");
+      } else {
+        const { error } = await supabase
+          .from("leads")
+          .insert({ ...payload, source: "manual" });
+        if (error) throw new Error(error.message);
+        toast.success("Lead creato");
       }
-    } else {
-      const { error } = await supabase.from("leads").insert({
-        full_name: fullName,
-        phone: phone || null,
-        email: email || null,
-        message: message || null,
-        status,
-        source: "manual",
+      onSaved();
+    } catch (e) {
+      toast.error("Salvataggio fallito", {
+        description: e instanceof Error ? e.message : String(e),
       });
-      if (error) {
-        setError(error.message);
-        setSaving(false);
-        return;
-      }
+    } finally {
+      setSaving(false);
     }
-    onSaved();
   }
 
   async function handleDelete() {
@@ -82,9 +90,10 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
     if (!confirm("Eliminare definitivamente questo lead?")) return;
     const { error } = await supabase.from("leads").delete().eq("id", lead.id);
     if (error) {
-      alert("Errore: " + error.message);
+      toast.error("Eliminazione fallita", { description: error.message });
       return;
     }
+    toast.success("Lead eliminato");
     onSaved();
   }
 
@@ -96,11 +105,11 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
       .insert({ lead_id: lead.id, body: newNote.trim(), author_id: user?.id ?? null })
       .select()
       .single();
-    if (error) {
-      alert("Errore: " + error.message);
+    if (error || !data) {
+      toast.error("Errore nota", { description: error?.message });
       return;
     }
-    if (data) setNotes([data, ...notes]);
+    setNotes([data, ...notes]);
     setNewNote("");
   }
 
@@ -117,58 +126,58 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
           <h2 className="text-base font-semibold">
             {lead ? "Modifica lead" : "Nuovo lead"}
           </h2>
-          <button onClick={onClose} className="text-text-muted hover:text-text">
+          <button onClick={onClose} className="text-text-muted hover:text-text" type="button">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
-          <Field label="Nome *">
+          <FormField label="Nome *" error={errors.full_name}>
             <input
               type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              value={form.full_name}
+              onChange={(e) => setField("full_name", e.target.value)}
               className="input-base"
               placeholder="Mario Rossi"
               autoFocus
             />
-          </Field>
+          </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Telefono">
+            <FormField label="Telefono" error={errors.phone}>
               <input
                 type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                value={form.phone ?? ""}
+                onChange={(e) => setField("phone", e.target.value || null)}
                 className="input-base"
                 placeholder="333 1234567"
               />
-            </Field>
-            <Field label="Email">
+            </FormField>
+            <FormField label="Email" error={errors.email}>
               <input
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={form.email ?? ""}
+                onChange={(e) => setField("email", e.target.value || null)}
                 className="input-base"
                 placeholder="mario@email.it"
               />
-            </Field>
+            </FormField>
           </div>
 
-          <Field label="Messaggio / Note">
+          <FormField label="Messaggio / Note" error={errors.message}>
             <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              value={form.message ?? ""}
+              onChange={(e) => setField("message", e.target.value || null)}
               rows={3}
               className="input-base resize-none"
               placeholder="Dettagli sul lead..."
             />
-          </Field>
+          </FormField>
 
-          <Field label="Stato">
+          <FormField label="Stato" error={errors.status}>
             <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as LeadStatus)}
+              value={form.status}
+              onChange={(e) => setField("status", e.target.value as LeadFormValues["status"])}
               className="input-base"
             >
               {LEAD_STATUS_ORDER.map((s) => (
@@ -177,18 +186,12 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
                 </option>
               ))}
             </select>
-            {status === "cliente" && lead?.status !== "cliente" && (
+            {form.status === "cliente" && lead?.status !== "cliente" && (
               <p className="text-xs text-accent mt-1.5">
                 Salvando, verrà creato automaticamente un cliente e una pratica.
               </p>
             )}
-          </Field>
-
-          {error && (
-            <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md p-2.5">
-              {error}
-            </div>
-          )}
+          </FormField>
 
           {lead && (
             <div className="border-t border-border pt-4">
@@ -202,7 +205,7 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
                   placeholder="Aggiungi una nota..."
                   className="input-base"
                 />
-                <button onClick={handleAddNote} className="btn-secondary shrink-0">
+                <button onClick={handleAddNote} className="btn-secondary shrink-0" type="button">
                   Aggiungi
                 </button>
               </div>
@@ -230,6 +233,7 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
             <button
               onClick={handleDelete}
               className="btn-ghost text-red-400 hover:text-red-300"
+              type="button"
             >
               <Trash2 className="w-4 h-4" />
               Elimina
@@ -238,10 +242,10 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
             <span />
           )}
           <div className="flex gap-2">
-            <button onClick={onClose} className="btn-secondary">
+            <button onClick={onClose} className="btn-secondary" type="button">
               Annulla
             </button>
-            <button onClick={handleSave} disabled={saving} className="btn-primary">
+            <button onClick={handleSave} disabled={saving} className="btn-primary" type="button">
               {saving ? "Salvataggio..." : "Salva"}
             </button>
           </div>
@@ -251,11 +255,20 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function FormField({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <label className="block text-xs font-medium text-text-muted mb-1.5">{label}</label>
       {children}
+      {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
     </div>
   );
 }

@@ -3,28 +3,40 @@
 import { useMemo, useState } from "react";
 import { Plus, Search, Phone, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { CASE_STATUS_LABELS, CASE_STATUS_ORDER } from "@/lib/constants";
 import { CaseStatusBadge } from "./CaseStatusBadge";
 import { formatCurrency, formatDate, initials } from "@/lib/utils";
+import {
+  customerFormSchema,
+  vehicleFormSchema,
+  caseFormSchema,
+  type CustomerFormValues,
+  type VehicleFormValues,
+} from "@/lib/schemas";
+import { CustomerPanel } from "./case/CustomerPanel";
+import { VehiclePanel } from "./case/VehiclePanel";
+import { CasePanel } from "./case/CasePanel";
 import type { Case, CaseStatus } from "@/types/database.types";
 
-type CaseWithCustomer = Case & {
+export type CaseWithRelations = Case & {
   customers: {
     id: string;
     full_name: string;
     phone: string | null;
     email: string | null;
   } | null;
+  vehicles: { make: string | null; model: string | null; plate: string | null } | null;
 };
 
 export function CasesTable({
   initialCases,
 }: {
-  initialCases: CaseWithCustomer[];
+  initialCases: CaseWithRelations[];
 }) {
   const router = useRouter();
-  const [cases] = useState<CaseWithCustomer[]>(initialCases);
+  const [cases] = useState<CaseWithRelations[]>(initialCases);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CaseStatus | "all">("all");
   const [showNew, setShowNew] = useState(false);
@@ -38,9 +50,9 @@ export function CasesTable({
         c.customers?.full_name.toLowerCase().includes(q) ||
         c.customers?.phone?.toLowerCase().includes(q) ||
         c.customers?.email?.toLowerCase().includes(q) ||
-        c.vehicle_make?.toLowerCase().includes(q) ||
-        c.vehicle_model?.toLowerCase().includes(q) ||
-        c.vehicle_plate?.toLowerCase().includes(q) ||
+        c.vehicles?.make?.toLowerCase().includes(q) ||
+        c.vehicles?.model?.toLowerCase().includes(q) ||
+        c.vehicles?.plate?.toLowerCase().includes(q) ||
         c.insurance_company?.toLowerCase().includes(q)
       );
     });
@@ -82,7 +94,7 @@ export function CasesTable({
               className="input-base pl-8 w-72"
             />
           </div>
-          <button onClick={() => setShowNew(true)} className="btn-primary">
+          <button onClick={() => setShowNew(true)} className="btn-primary" type="button">
             <Plus className="w-4 h-4" strokeWidth={2.5} />
             Nuova pratica
           </button>
@@ -94,27 +106,13 @@ export function CasesTable({
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-bg-hover/50">
-                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">
-                  Cliente
-                </th>
-                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">
-                  Contatti
-                </th>
-                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">
-                  Veicolo
-                </th>
-                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">
-                  Assicurazione
-                </th>
-                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">
-                  Stato
-                </th>
-                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">
-                  Prezzo
-                </th>
-                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">
-                  Aperta
-                </th>
+                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">Cliente</th>
+                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">Contatti</th>
+                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">Veicolo</th>
+                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">Assicurazione</th>
+                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">Stato</th>
+                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">Prezzo</th>
+                <th className="text-left text-xs font-medium text-text-muted px-5 py-3">Aperta</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -165,10 +163,10 @@ export function CasesTable({
                       </div>
                     </td>
                     <td className="px-5 py-3 text-sm text-text-muted">
-                      {[c.vehicle_make, c.vehicle_model].filter(Boolean).join(" ") || "—"}
-                      {c.vehicle_plate && (
+                      {[c.vehicles?.make, c.vehicles?.model].filter(Boolean).join(" ") || "—"}
+                      {c.vehicles?.plate && (
                         <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-bg-hover font-mono">
-                          {c.vehicle_plate}
+                          {c.vehicles.plate}
                         </span>
                       )}
                     </td>
@@ -205,6 +203,16 @@ export function CasesTable({
   );
 }
 
+const emptyVehicle: VehicleFormValues = {
+  make: null,
+  model: null,
+  plate: null,
+  year: null,
+  color: null,
+  vin: null,
+  notes: null,
+};
+
 function NewCaseModal({
   onClose,
   onCreated,
@@ -212,69 +220,100 @@ function NewCaseModal({
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
-  const supabase = createClient();
-  // Cliente
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  // Pratica
-  const [vehicleMake, setVehicleMake] = useState("");
-  const [vehicleModel, setVehicleModel] = useState("");
-  const [vehiclePlate, setVehiclePlate] = useState("");
-  const [insurance, setInsurance] = useState("");
-  const [price, setPrice] = useState("");
-  const [status, setStatus] = useState<CaseStatus>("preventivo");
-
+  const supabase = useMemo(() => createClient(), []);
+  const [customer, setCustomer] = useState<CustomerFormValues>({
+    full_name: "",
+    phone: null,
+    email: null,
+  });
+  const [vehicle, setVehicle] = useState<VehicleFormValues>(emptyVehicle);
+  const [caseForm, setCaseForm] = useState({
+    status: "preventivo" as CaseStatus,
+    insurance_company: null as string | null,
+    description: null as string | null,
+    price: "",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleSave() {
-    if (!fullName.trim()) {
-      setError("Il nome cliente è obbligatorio");
+    setErrors({});
+    const customerResult = customerFormSchema.safeParse(customer);
+    const vehicleHasAny = Object.values(vehicle).some((v) => v !== null && v !== "");
+    const vehicleResult = vehicleHasAny
+      ? vehicleFormSchema.safeParse(vehicle)
+      : { success: true as const, data: null };
+    const caseResult = caseFormSchema.safeParse(caseForm);
+
+    const flat: Record<string, string> = {};
+    if (!customerResult.success) {
+      for (const i of customerResult.error.issues) flat[`customer.${String(i.path[0])}`] = i.message;
+    }
+    if (!vehicleResult.success) {
+      for (const i of vehicleResult.error.issues) flat[`vehicle.${String(i.path[0])}`] = i.message;
+    }
+    if (!caseResult.success) {
+      for (const i of caseResult.error.issues) flat[`case.${String(i.path[0])}`] = i.message;
+    }
+    if (Object.keys(flat).length > 0) {
+      setErrors(flat);
+      toast.error("Controlla i campi evidenziati");
       return;
     }
+    if (!customerResult.success || !caseResult.success || !vehicleResult.success) return;
+
     setSaving(true);
-    setError(null);
+    try {
+      const { data: customerRow, error: custErr } = await supabase
+        .from("customers")
+        .insert(customerResult.data)
+        .select()
+        .single();
+      if (custErr || !customerRow) throw new Error(custErr?.message ?? "Errore cliente");
 
-    // 1) Crea cliente
-    const { data: customer, error: custErr } = await supabase
-      .from("customers")
-      .insert({
-        full_name: fullName,
-        phone: phone || null,
-        email: email || null,
-      })
-      .select()
-      .single();
+      let vehicleId: string | null = null;
+      if (vehicleResult.data) {
+        const { data: vehRow, error: vehErr } = await supabase
+          .from("vehicles")
+          .insert({ ...vehicleResult.data, customer_id: customerRow.id })
+          .select()
+          .single();
+        if (vehErr) throw new Error(`Veicolo: ${vehErr.message}`);
+        vehicleId = vehRow?.id ?? null;
+      }
 
-    if (custErr || !customer) {
-      setError(custErr?.message ?? "Errore creazione cliente");
+      const { data: caseRow, error: caseErr } = await supabase
+        .from("cases")
+        .insert({
+          customer_id: customerRow.id,
+          vehicle_id: vehicleId,
+          status: caseResult.data.status,
+          insurance_company: caseResult.data.insurance_company,
+          description: caseResult.data.description,
+          price: caseResult.data.price,
+        })
+        .select()
+        .single();
+      if (caseErr || !caseRow) throw new Error(caseErr?.message ?? "Errore pratica");
+
+      toast.success("Pratica creata");
+      onCreated(caseRow.id);
+    } catch (e) {
+      toast.error("Creazione fallita", {
+        description: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
       setSaving(false);
-      return;
     }
+  }
 
-    // 2) Crea pratica
-    const { data: c, error: caseErr } = await supabase
-      .from("cases")
-      .insert({
-        customer_id: customer.id,
-        vehicle_make: vehicleMake || null,
-        vehicle_model: vehicleModel || null,
-        vehicle_plate: vehiclePlate || null,
-        insurance_company: insurance || null,
-        price: price ? Number(price) : null,
-        status,
-      })
-      .select()
-      .single();
-
-    if (caseErr || !c) {
-      setError(caseErr?.message ?? "Errore creazione pratica");
-      setSaving(false);
-      return;
-    }
-
-    onCreated(c.id);
+  function clearError(path: string) {
+    if (!errors[path]) return;
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[path];
+      return next;
+    });
   }
 
   return (
@@ -282,147 +321,68 @@ function NewCaseModal({
       className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
-      <div className="card w-full max-w-lg max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="card w-full max-w-lg max-h-[90vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="px-5 py-4 border-b border-border">
           <h2 className="text-base font-semibold">Nuova pratica</h2>
-          <p className="text-xs text-text-subtle mt-0.5">Compili tutto in un'unica schermata</p>
+          <p className="text-xs text-text-subtle mt-0.5">Compila i dati cliente, veicolo e pratica.</p>
         </div>
-        <div className="p-5 space-y-5">
-          {/* Cliente */}
-          <Section title="Cliente">
-            <Field label="Nome e cognome *">
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="input-base"
-                placeholder="Mario Rossi"
-                autoFocus
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Telefono">
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="input-base"
-                  placeholder="333 1234567"
-                />
-              </Field>
-              <Field label="Email">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-base"
-                  placeholder="mario@email.it"
-                />
-              </Field>
-            </div>
-          </Section>
-
-          {/* Veicolo */}
-          <Section title="Veicolo">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Marca">
-                <input
-                  value={vehicleMake}
-                  onChange={(e) => setVehicleMake(e.target.value)}
-                  className="input-base"
-                  placeholder="Fiat"
-                />
-              </Field>
-              <Field label="Modello">
-                <input
-                  value={vehicleModel}
-                  onChange={(e) => setVehicleModel(e.target.value)}
-                  className="input-base"
-                  placeholder="Panda"
-                />
-              </Field>
-            </div>
-            <Field label="Targa">
-              <input
-                value={vehiclePlate}
-                onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
-                className="input-base font-mono"
-                placeholder="AB123CD"
-              />
-            </Field>
-          </Section>
-
-          {/* Pratica */}
-          <Section title="Pratica">
-            <Field label="Assicurazione">
-              <input
-                value={insurance}
-                onChange={(e) => setInsurance(e.target.value)}
-                className="input-base"
-                placeholder="Generali"
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Prezzo (€)">
-                <input
-                  type="number"
-                  step="0.01"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="input-base"
-                  placeholder="0.00"
-                />
-              </Field>
-              <Field label="Stato">
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as CaseStatus)}
-                  className="input-base"
-                >
-                  {CASE_STATUS_ORDER.map((s) => (
-                    <option key={s} value={s}>
-                      {CASE_STATUS_LABELS[s]}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-          </Section>
-
-          {error && (
-            <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md p-2.5">
-              {error}
-            </div>
-          )}
+        <div className="p-5 space-y-6">
+          <CustomerPanel
+            values={customer}
+            errors={{
+              full_name: errors["customer.full_name"],
+              phone: errors["customer.phone"],
+              email: errors["customer.email"],
+            }}
+            onChange={(patch) => {
+              setCustomer((c) => ({ ...c, ...patch }));
+              for (const k of Object.keys(patch) as string[]) clearError(`customer.${k}`);
+            }}
+          />
+          <VehiclePanel
+            values={vehicle}
+            errors={{
+              make: errors["vehicle.make"],
+              model: errors["vehicle.model"],
+              plate: errors["vehicle.plate"],
+              year: errors["vehicle.year"],
+              color: errors["vehicle.color"],
+              vin: errors["vehicle.vin"],
+            }}
+            onChange={(patch) => {
+              setVehicle((v) => ({ ...v, ...patch }));
+              for (const k of Object.keys(patch) as string[]) clearError(`vehicle.${k}`);
+            }}
+            vehicles={[]}
+            selectedVehicleId={null}
+            onSelectVehicle={() => undefined}
+          />
+          <CasePanel
+            values={caseForm}
+            errors={{
+              status: errors["case.status"],
+              insurance_company: errors["case.insurance_company"],
+              description: errors["case.description"],
+              price: errors["case.price"],
+            }}
+            onChange={(patch) => {
+              setCaseForm((c) => ({ ...c, ...patch }));
+              for (const k of Object.keys(patch) as string[]) clearError(`case.${k}`);
+            }}
+          />
         </div>
         <div className="px-5 py-3 border-t border-border flex justify-end gap-2">
-          <button onClick={onClose} className="btn-secondary">
+          <button onClick={onClose} className="btn-secondary" type="button">
             Annulla
           </button>
-          <button onClick={handleSave} disabled={saving} className="btn-primary">
+          <button onClick={handleSave} disabled={saving} className="btn-primary" type="button">
             {saving ? "Salvataggio..." : "Crea pratica"}
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-text-subtle mb-2.5">
-        {title}
-      </h3>
-      <div className="space-y-3">{children}</div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-text-muted mb-1.5">{label}</label>
-      {children}
     </div>
   );
 }

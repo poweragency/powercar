@@ -1,14 +1,23 @@
-# CRM Officina / Carrozzeria
+# CRM Carrozzerie
 
-CRM minimal per officina meccanica/carrozzeria. Gestione lead da Facebook Ads → Kanban → cliente → pratica officina → documenti.
+CRM multi-tenant per officine/carrozzerie. Gestione lead da Facebook Ads → Kanban → cliente → pratica officina → preventivi/fatture → consegna.
 
 ## Stack
 
-- **Next.js 15** (App Router, Server Components)
-- **React 19** + **TypeScript**
+- **Next.js 15** (App Router, Server Components, Server Actions)
+- **React 19** + **TypeScript** (strict)
 - **TailwindCSS** (dark theme, accent arancione)
-- **Supabase** (Auth + Postgres + Storage + Realtime)
+- **Supabase** (Auth + Postgres + RLS + Storage + Realtime)
 - **dnd-kit** (Kanban drag & drop)
+- **Zod** (validazione form)
+- **sonner** (toast notifications)
+- **@react-pdf/renderer** (PDF preventivi/fatture)
+- **date-fns** (calendario)
+- **Resend** (notifiche email cliente — opzionale)
+
+## Modello multi-tenant
+
+**Una carrozzeria = un account utente.** Ogni tabella business ha `owner_id` collegato a `auth.users(id)`. Le RLS policies isolano i dati: un utente vede ed edita solo i propri lead, customers, vehicles, cases, documents, notes, appointments, invoices e invoice_items. Il trigger `set_owner_id()` valorizza `owner_id = auth.uid()` automaticamente su tutti gli INSERT, quindi il frontend non deve passarlo esplicitamente.
 
 ## Setup
 
@@ -22,42 +31,39 @@ npm install
 
 Copia `.env.example` in `.env.local` e compila:
 
-```bash
-cp .env.example .env.local
-```
-
-**Variabili richieste:**
-
 | Variabile | Dove la trovi |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Settings → API → Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API → Project API keys → `anon`/`publishable` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → Project API keys → `service_role` (**solo server, non esporlo**) |
-| `FB_WEBHOOK_VERIFY_TOKEN` | Stringa segreta a tua scelta — la metti uguale in Meta App Webhook setup |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API → `anon`/`publishable` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → `service_role` (**server only**) |
 | `FB_APP_SECRET` | Meta App → Settings → Basic → App Secret |
-| `FB_PAGE_ACCESS_TOKEN` | Meta Graph API Explorer → Page Access Token con permessi `leads_retrieval`, `pages_manage_metadata`, `pages_show_list` |
+| `RESEND_API_KEY` | resend.com → API Keys (opzionale, per inviare email reali) |
+| `RESEND_FROM_EMAIL` | Mittente verificato Resend (es. `Officina <noreply@dominio.it>`) |
 
-Il progetto Supabase è già configurato:
-- URL: `https://jconofgquajgzylcfnfg.supabase.co`
-- Nome: **CRM-CARROZZERIA**
-- Org: POWER AGENCY
+### 3. Database
 
-### 3. Crea il primo utente
+Le migrations vivono in [supabase/migrations/](supabase/migrations/). Il progetto Supabase di riferimento è già configurato, ma per un nuovo ambiente:
 
-Supabase Auth è in modalità invite-only. Crea l'utente admin manualmente:
+```bash
+supabase link --project-ref <project-id>
+supabase db push
+```
 
-1. Vai su Supabase Dashboard → **Authentication → Users → Add user**
-2. Inserisci email + password
-3. Disattiva "Auto Confirm User" se vuoi inviarti l'email di conferma, altrimenti spunta "Auto Confirm User"
-4. Il trigger `handle_new_user` creerà automaticamente il profilo
+### 4. Crea il primo utente
 
-### 4. Avvia
+Supabase Auth è invite-only di default. Crea l'utente admin manualmente:
+
+1. Supabase Dashboard → **Authentication → Users → Add user**
+2. Inserisci email + password, spunta "Auto Confirm User"
+3. Il trigger `handle_new_user` crea automaticamente il profilo con `workshop_name = "La mia carrozzeria"`
+
+### 5. Avvia
 
 ```bash
 npm run dev
 ```
 
-Apri http://localhost:3000 e accedi con le credenziali create al passo 3.
+Apri http://localhost:3000 e accedi.
 
 ---
 
@@ -66,94 +72,137 @@ Apri http://localhost:3000 e accedi con le credenziali create al passo 3.
 ```
 .
 ├── app/
-│   ├── (app)/                     # Route protette (richiede login)
+│   ├── (app)/                     # Route protette (auth required)
 │   │   ├── layout.tsx             # Sidebar + auth guard
-│   │   ├── dashboard/             # KPI cards + ultimi lead/pratiche
-│   │   ├── leads/                 # Kanban dnd-kit
-│   │   ├── customers/             # Tabella clienti
-│   │   └── cases/
-│   │       ├── page.tsx           # Lista pratiche
-│   │       └── [id]/              # Dettaglio + docs + note
+│   │   ├── dashboard/             # KPI + ultimi lead/pratiche
+│   │   ├── leads/                 # Kanban dnd-kit + realtime delta update
+│   │   ├── cases/
+│   │   │   ├── page.tsx           # Lista pratiche (search/filter)
+│   │   │   └── [id]/              # Dettaglio (panels) + photo gallery + invoices
+│   │   ├── invoices/[id]/         # Editor preventivo/fattura + export PDF
+│   │   ├── calendar/              # Vista mese appuntamenti
+│   │   └── settings/              # Account + dati fiscali + Facebook
 │   ├── api/
-│   │   └── webhooks/facebook/     # Webhook FB Lead Ads
-│   ├── auth/signout/              # POST /auth/signout
-│   ├── login/                     # Pagina login
-│   ├── layout.tsx                 # Root layout (dark theme)
-│   └── globals.css
-├── components/                    # UI components
+│   │   ├── webhooks/facebook/     # Webhook FB Lead Ads
+│   │   ├── invoices/              # POST: crea bozza preventivo/fattura
+│   │   └── notifications/case-status/ # POST: notifica cliente via email
+│   ├── auth/signout/
+│   ├── login/
+│   └── signup/
+├── components/
+│   ├── case/                      # Panels della pratica (Customer, Vehicle, Case, Documents, Photo, Notes, Invoices, Notify)
+│   ├── calendar/                  # CalendarView grid + AppointmentModal
+│   ├── invoice/                   # InvoicePDF + InvoiceEditor
+│   ├── CaseDetail.tsx             # Container che orchestra i panel + save unico
+│   ├── CasesTable.tsx
+│   ├── KanbanBoard.tsx
+│   ├── LeadCard.tsx · LeadModal.tsx
+│   ├── SettingsForm.tsx
+│   └── Sidebar.tsx
 ├── lib/
 │   ├── supabase/                  # client.ts, server.ts, admin.ts, middleware.ts
+│   ├── schemas/                   # Schemi Zod per validazione form
 │   ├── constants.ts               # Label/colori status
 │   └── utils.ts
+├── supabase/
+│   └── migrations/                # Schema + RLS + triggers + storage buckets
 ├── types/
 │   └── database.types.ts          # Tipi generati da Supabase
-├── middleware.ts                  # Auth middleware (redirect /login)
-├── tailwind.config.ts
-└── package.json
+└── middleware.ts                  # Auth middleware (redirect /login)
 ```
 
 ---
 
 ## Database schema
 
-6 tabelle in schema `public`:
-
-- **`profiles`** — estende `auth.users`
-- **`leads`** — incoming lead (FB o manuali). Status: `nuovo | contattato | preventivo | cliente | perso`
-- **`customers`** — creati automaticamente quando lead passa a `cliente`
-- **`cases`** — pratiche officina. Status: `preventivo | attesa_pezzi | lavorazione | completata | consegnata`
-- **`documents`** — file caricati su bucket Storage `documents`
-- **`notes`** — note testuali su lead o pratica (vincolo: una sola FK valorizzata)
+| Tabella | Scopo |
+|---|---|
+| `profiles` | Estende `auth.users`. Dati anagrafici officina + dati fiscali (P.IVA, IBAN, prefisso fatture) + credenziali Facebook |
+| `leads` | Lead in arrivo (FB Ads o manuali). Status: `nuovo · contattato · preventivo · cliente · perso` |
+| `customers` | Creati automaticamente quando lead passa a `cliente` (trigger) |
+| `vehicles` | Veicoli del cliente (uno-a-molti per cliente). Make/Model/Plate/VIN/Year/Color |
+| `cases` | Pratiche officina. Status: `preventivo · attesa_pezzi · lavorazione · completata · consegnata`. FK opzionale a `vehicles` |
+| `documents` | Foto danni e PDF caricati. Storage bucket `documents` (privato, 10MB) |
+| `notes` | Note testuali su lead OR case (vincolo XOR) |
+| `appointments` | Calendario. Kind: `accettazione · consegna · sopralluogo · lavorazione · altro` |
+| `invoices` | Preventivi e fatture. Numerazione `{PREFIX}-{YEAR}-{seq}` |
+| `invoice_items` | Righe del preventivo/fattura. Totali ricalcolati via trigger |
 
 **Trigger automatici:**
-- `handle_lead_to_customer` — quando lead → `cliente`, crea customer + case
-- `handle_new_user` — alla registrazione auth, crea profile
-- `set_updated_at` — aggiorna `updated_at` su leads/customers/cases
 
-**RLS:** single-tenant, tutti gli utenti autenticati vedono tutto.
+- `handle_lead_to_customer` — lead → `cliente` crea customer + case in cascata
+- `handle_new_user` — alla registrazione crea profile con workshop_name dai metadata
+- `set_owner_id` — su ogni INSERT setta `owner_id = auth.uid()` se nullo
+- `set_updated_at` — refresh automatico di `updated_at`
+- `recalc_invoice_totals` — al cambio degli items ricalcola subtotal, IVA, totale
 
-**Storage bucket:** `documents` (privato, max 10MB, immagini + PDF).
+**RLS multi-tenant:** ogni policy filtra per `owner_id = auth.uid()`. Storage policies filtrano per `{user_id}/...` come primo segmento del path.
+
+---
+
+## Feature principali
+
+### Lead Kanban con realtime delta update
+
+La pagina `/leads` mostra i lead in colonne `nuovo → contattato → preventivo → cliente → perso`. Drag & drop tra colonne aggiorna lo status. La subscription Realtime applica delta update (INSERT/UPDATE/DELETE) senza fare full refetch.
+
+Quando un lead passa a `cliente`, il trigger `handle_lead_to_customer` crea automaticamente customer + case in stato `preventivo`.
+
+### Pratica officina (CaseDetail)
+
+Pagina `/cases/[id]` divisa in panel:
+
+- **Cliente** — full_name, phone, email
+- **Veicolo** — dropdown se il cliente ha più veicoli, altrimenti form per crearne uno nuovo
+- **Pratica** — assicurazione, prezzo, descrizione lavori, stato
+- **Foto danni** — gallery thumbnail + lightbox keyboard-navigable (← → Esc)
+- **Altri documenti** — PDF e file non-immagine
+- **Preventivi e fatture** — lista con stato, link all'editor
+- **Note** — annotazioni interne
+- **Notifica cliente** — pulsante per inviare email con stato corrente
+
+Tutti i campi sono validati con Zod prima del salvataggio.
+
+### Preventivi e fatture PDF
+
+Da `/cases/[id]` click su "Preventivo" o "Fattura" → editor `/invoices/[id]` con righe quantità × prezzo, IVA configurabile, ricalcolo automatico. Bottone "Scarica PDF" genera il documento con `@react-pdf/renderer` includendo intestazione officina (workshop_name, P.IVA, indirizzo, IBAN) e dati cliente/veicolo.
+
+Numerazione automatica: `{INVOICE_PREFIX}-{YEAR}-{seq}` (es. `PREV-2026-001`).
+
+### Calendario appuntamenti
+
+`/calendar` mostra vista mese con gli appuntamenti del periodo. Click su una cella → crea nuovo appuntamento. Click su un appuntamento → modifica/elimina. Categorie: accettazione, consegna, sopralluogo, lavorazione, altro (con codice colore).
+
+### Notifiche email
+
+Bottone "Notifica cliente" nella pratica invia un'email con il messaggio del template per lo stato corrente. Richiede `RESEND_API_KEY` + `RESEND_FROM_EMAIL`; se non configurate, mostra un preview senza inviare.
 
 ---
 
 ## Configurazione Facebook Lead Ads
 
-### 1. Crea un'app Meta
+Vedi la guida passo-passo nella sezione **Impostazioni → Collegamento Facebook Ads** (apre una guida espandibile in 5 step). In breve:
 
-1. Vai su https://developers.facebook.com/apps/
-2. Crea app tipo "Business"
-3. Aggiungi prodotto **Webhooks**
+1. Trova l'ID Pagina FB
+2. Genera un Page Access Token (permessi `leads_retrieval`, `pages_manage_metadata`)
+3. Incolla i 2 valori nelle Impostazioni del CRM
+4. Su Meta for Developers → Webhooks → URL `https://TUO-DOMINIO/api/webhooks/facebook`, Verify Token = `profile.fb_verify_token` (lo trovi nelle Impostazioni)
+5. Subscribe `leadgen`
 
-### 2. Configura il webhook
-
-1. Webhooks → Page → Subscribe to fields → `leadgen`
-2. URL: `https://TUO-DOMINIO.com/api/webhooks/facebook`
-3. Verify token: lo stesso valore di `FB_WEBHOOK_VERIFY_TOKEN` nel `.env.local`
-4. Meta farà un GET → la route risponde con `hub.challenge` → ✅ verified
-
-### 3. Sottoscrivi la Pagina al webhook
-
-```bash
-curl -X POST "https://graph.facebook.com/v18.0/{PAGE_ID}/subscribed_apps?subscribed_fields=leadgen&access_token={PAGE_ACCESS_TOKEN}"
-```
-
-### 4. Test
-
-Usa il **Lead Ads Testing Tool** di Meta per simulare un lead:
-https://developers.facebook.com/tools/lead-ads-testing
-
-Il lead apparirà nel CRM nella colonna "Nuovo" entro pochi secondi (subscription Realtime).
+Il webhook usa `service_role` per scrivere e identifica il tenant via `fb_page_id` su `profiles`.
 
 ---
 
 ## Comandi utili
 
 ```bash
-npm run dev        # avvia in dev
-npm run build      # build production
-npm run start      # avvia build production
-npm run lint       # linter
-npm run types      # rigenera types/database.types.ts (richiede supabase CLI)
+npm run dev          # avvio in dev
+npm run build        # build production
+npm run start        # avvia build production
+npm run lint         # ESLint (config Next default)
+npm run type-check   # tsc --noEmit
+npm run format       # Prettier write
+npm run types        # rigenera types/database.types.ts (richiede supabase CLI)
 ```
 
 ---
@@ -168,50 +217,6 @@ npm run types      # rigenera types/database.types.ts (richiede supabase CLI)
 4. Deploy
 
 Il webhook Facebook richiede HTTPS pubblico — Vercel lo fornisce automaticamente.
-
-### Self-host
-
-```bash
-npm run build
-npm start
-```
-
-Configura un reverse proxy (Nginx/Caddy) con HTTPS verso `localhost:3000`.
-
----
-
-## Flusso operativo
-
-```
-   [Facebook Lead Ads]
-         │
-         ▼
-   POST /api/webhooks/facebook ──→ supabase.leads (status=nuovo)
-                                          │
-                                          ▼
-                                    Kanban /leads
-                                          │
-                              [drag → "Cliente"]
-                                          │
-                                          ▼
-                          trigger: handle_lead_to_customer
-                                          │
-                                          ▼
-                              supabase.customers + cases (status=preventivo)
-                                          │
-                                          ▼
-                                    /cases/[id]
-                                  (upload docs, note,
-                                   cambio stato fino a "consegnata")
-```
-
----
-
-## Personalizzazione
-
-- **Colori/tema:** [tailwind.config.ts](tailwind.config.ts) → sezione `theme.extend.colors`
-- **Labels status:** [lib/constants.ts](lib/constants.ts)
-- **Aggiungere status:** modifica enum in Postgres + aggiorna `constants.ts`
 
 ---
 

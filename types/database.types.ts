@@ -7,8 +7,81 @@ export type Json =
   | Json[]
 
 export type Database = {
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          customer_id: string | null
+          ends_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["appointment_kind"]
+          notes: string | null
+          owner_id: string | null
+          reminded_at: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          ends_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["appointment_kind"]
+          notes?: string | null
+          owner_id?: string | null
+          reminded_at?: string | null
+          starts_at: string
+          title: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          ends_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["appointment_kind"]
+          notes?: string | null
+          owner_id?: string | null
+          reminded_at?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cases: {
         Row: {
           created_at: string
@@ -20,9 +93,7 @@ export type Database = {
           price: number | null
           status: Database["public"]["Enums"]["case_status"]
           updated_at: string
-          vehicle_make: string | null
-          vehicle_model: string | null
-          vehicle_plate: string | null
+          vehicle_id: string | null
         }
         Insert: {
           created_at?: string
@@ -34,9 +105,7 @@ export type Database = {
           price?: number | null
           status?: Database["public"]["Enums"]["case_status"]
           updated_at?: string
-          vehicle_make?: string | null
-          vehicle_model?: string | null
-          vehicle_plate?: string | null
+          vehicle_id?: string | null
         }
         Update: {
           created_at?: string
@@ -48,9 +117,7 @@ export type Database = {
           price?: number | null
           status?: Database["public"]["Enums"]["case_status"]
           updated_at?: string
-          vehicle_make?: string | null
-          vehicle_model?: string | null
-          vehicle_plate?: string | null
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -58,6 +125,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -143,6 +217,125 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          line_total: number
+          owner_id: string | null
+          position: number
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          line_total?: number
+          owner_id?: string | null
+          position?: number
+          quantity?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          line_total?: number
+          owner_id?: string | null
+          position?: number
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          case_id: string
+          created_at: string
+          customer_id: string
+          due_at: string | null
+          id: string
+          issued_at: string
+          kind: Database["public"]["Enums"]["invoice_kind"]
+          notes: string | null
+          number: string
+          owner_id: string | null
+          pdf_path: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal: number
+          total: number
+          updated_at: string
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          customer_id: string
+          due_at?: string | null
+          id?: string
+          issued_at?: string
+          kind?: Database["public"]["Enums"]["invoice_kind"]
+          notes?: string | null
+          number: string
+          owner_id?: string | null
+          pdf_path?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          customer_id?: string
+          due_at?: string | null
+          id?: string
+          issued_at?: string
+          kind?: Database["public"]["Enums"]["invoice_kind"]
+          notes?: string | null
+          number?: string
+          owner_id?: string | null
+          pdf_path?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
@@ -245,50 +438,167 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
+          city: string | null
+          country: string | null
           created_at: string
           fb_page_access_token: string | null
           fb_page_id: string | null
           fb_verify_token: string | null
           full_name: string | null
+          iban: string | null
           id: string
+          invoice_prefix: string | null
           phone: string | null
+          postal_code: string | null
+          province: string | null
+          tax_code: string | null
+          vat_number: string | null
           workshop_name: string | null
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           fb_page_access_token?: string | null
           fb_page_id?: string | null
           fb_verify_token?: string | null
           full_name?: string | null
+          iban?: string | null
           id: string
+          invoice_prefix?: string | null
           phone?: string | null
+          postal_code?: string | null
+          province?: string | null
+          tax_code?: string | null
+          vat_number?: string | null
           workshop_name?: string | null
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           fb_page_access_token?: string | null
           fb_page_id?: string | null
           fb_verify_token?: string | null
           full_name?: string | null
+          iban?: string | null
           id?: string
+          invoice_prefix?: string | null
           phone?: string | null
+          postal_code?: string | null
+          province?: string | null
+          tax_code?: string | null
+          vat_number?: string | null
           workshop_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          color: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          make: string | null
+          model: string | null
+          notes: string | null
+          owner_id: string | null
+          plate: string | null
+          updated_at: string
+          vin: string | null
+          year: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          plate?: string | null
+          updated_at?: string
+          vin?: string | null
+          year?: number | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          plate?: string | null
+          updated_at?: string
+          vin?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: { [_ in never]: never }
-    Functions: { [_ in never]: never }
+    Functions: {
+      create_invoice_draft: {
+        Args: {
+          p_case_id: string
+          p_kind: Database["public"]["Enums"]["invoice_kind"]
+        }
+        Returns: string
+      }
+      save_invoice_items: {
+        Args: {
+          p_invoice_id: string
+          p_items: Json
+        }
+        Returns: undefined
+      }
+    }
     Enums: {
+      appointment_kind:
+        | "accettazione"
+        | "consegna"
+        | "sopralluogo"
+        | "lavorazione"
+        | "altro"
       case_status:
         | "preventivo"
         | "attesa_pezzi"
         | "lavorazione"
         | "completata"
         | "consegnata"
+      invoice_kind: "preventivo" | "fattura"
+      invoice_status:
+        | "bozza"
+        | "inviato"
+        | "accettato"
+        | "rifiutato"
+        | "pagato"
+        | "scaduto"
       lead_status: "nuovo" | "contattato" | "preventivo" | "cliente" | "perso"
     }
     CompositeTypes: { [_ in never]: never }
@@ -311,3 +621,23 @@ export type CaseStatus = Database["public"]["Enums"]["case_status"]
 export type Document = Database["public"]["Tables"]["documents"]["Row"]
 export type Note = Database["public"]["Tables"]["notes"]["Row"]
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"]
+export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"]
+
+export type Vehicle = Database["public"]["Tables"]["vehicles"]["Row"]
+export type VehicleInsert = Database["public"]["Tables"]["vehicles"]["Insert"]
+export type VehicleUpdate = Database["public"]["Tables"]["vehicles"]["Update"]
+
+export type Appointment = Database["public"]["Tables"]["appointments"]["Row"]
+export type AppointmentInsert = Database["public"]["Tables"]["appointments"]["Insert"]
+export type AppointmentUpdate = Database["public"]["Tables"]["appointments"]["Update"]
+export type AppointmentKind = Database["public"]["Enums"]["appointment_kind"]
+
+export type Invoice = Database["public"]["Tables"]["invoices"]["Row"]
+export type InvoiceInsert = Database["public"]["Tables"]["invoices"]["Insert"]
+export type InvoiceUpdate = Database["public"]["Tables"]["invoices"]["Update"]
+export type InvoiceKind = Database["public"]["Enums"]["invoice_kind"]
+export type InvoiceStatus = Database["public"]["Enums"]["invoice_status"]
+
+export type InvoiceItem = Database["public"]["Tables"]["invoice_items"]["Row"]
+export type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"]
+export type InvoiceItemUpdate = Database["public"]["Tables"]["invoice_items"]["Update"]

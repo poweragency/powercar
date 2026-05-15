@@ -1,8 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { CASE_STATUS_LABELS, LEAD_STATUS_LABELS } from "@/lib/constants";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { KanbanSquare, Users, FolderKanban, CheckCircle2, Euro, TrendingUp, Wallet } from "lucide-react";
+import {
+  KanbanSquare,
+  Users,
+  FolderKanban,
+  CheckCircle2,
+  Euro,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
+import type { CaseStatus } from "@/types/database.types";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +32,11 @@ export default async function DashboardPage() {
     .from("cases")
     .select("*", { count: "exact", head: true })
     .in("status", ["completata", "consegnata"]);
-  const { data: revenueRows } = (await supabase
-    .from("cases")
-    .select("price")) as { data: Array<{ price: number | null }> | null };
-  const { data: deliveredRows } = (await supabase
+  const { data: revenueRows } = await supabase.from("cases").select("price");
+  const { data: deliveredRows } = await supabase
     .from("cases")
     .select("price")
-    .eq("status", "consegnata")) as {
-    data: Array<{ price: number | null }> | null;
-  };
+    .eq("status", "consegnata");
   const { data: latestLeads } = await supabase
     .from("leads")
     .select("*")
@@ -39,23 +44,22 @@ export default async function DashboardPage() {
     .limit(5);
   const { data: latestCases } = (await supabase
     .from("cases")
-    .select("*, customers(full_name)")
+    .select(
+      "id, status, price, created_at, customers(full_name), vehicles(make, model, plate)"
+    )
     .order("created_at", { ascending: false })
     .limit(5)) as {
     data: Array<{
       id: string;
-      status: import("@/types/database.types").CaseStatus;
+      status: CaseStatus;
       price: number | null;
-      vehicle_make: string | null;
-      vehicle_model: string | null;
-      vehicle_plate: string | null;
       created_at: string;
       customers: { full_name: string } | null;
+      vehicles: { make: string | null; model: string | null; plate: string | null } | null;
     }> | null;
   };
 
-  const revenue =
-    revenueRows?.reduce((sum, c) => sum + Number(c.price ?? 0), 0) ?? 0;
+  const revenue = revenueRows?.reduce((sum, c) => sum + Number(c.price ?? 0), 0) ?? 0;
   const collected =
     deliveredRows?.reduce((sum, c) => sum + Number(c.price ?? 0), 0) ?? 0;
 
@@ -66,12 +70,61 @@ export default async function DashboardPage() {
     { label: "Pratiche completate", value: completedCasesCount ?? 0, icon: CheckCircle2, color: "text-accent" },
   ];
 
+  const isEmpty = (leadsCount ?? 0) === 0 && (openCasesCount ?? 0) === 0 && (completedCasesCount ?? 0) === 0;
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <p className="text-sm text-text-muted mt-1">Panoramica della tua officina</p>
       </div>
+
+      {isEmpty && (
+        <div className="card p-6 mb-6 bg-gradient-to-br from-accent/10 to-transparent border-accent/30">
+          <h2 className="text-base font-semibold mb-1">Benvenuto nel tuo CRM</h2>
+          <p className="text-sm text-text-muted mb-4">
+            Iniziamo a configurare l&apos;officina e a inserire i primi lead. Bastano due minuti.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Link
+              href="/settings"
+              className="card p-4 border-border hover:border-accent transition-colors"
+            >
+              <div className="text-xs uppercase tracking-wide text-text-subtle mb-1">
+                1. Profilo
+              </div>
+              <div className="text-sm font-medium">Compila i dati dell&apos;officina</div>
+              <div className="text-xs text-text-muted mt-1">
+                P.IVA, indirizzo, IBAN — serviranno nei preventivi.
+              </div>
+            </Link>
+            <Link
+              href="/settings"
+              className="card p-4 border-border hover:border-accent transition-colors"
+            >
+              <div className="text-xs uppercase tracking-wide text-text-subtle mb-1">
+                2. Facebook
+              </div>
+              <div className="text-sm font-medium">Collega le campagne</div>
+              <div className="text-xs text-text-muted mt-1">
+                Per ricevere i lead in automatico dalle Facebook Ads.
+              </div>
+            </Link>
+            <Link
+              href="/leads"
+              className="card p-4 border-border hover:border-accent transition-colors"
+            >
+              <div className="text-xs uppercase tracking-wide text-text-subtle mb-1">
+                3. Lead
+              </div>
+              <div className="text-sm font-medium">Crea il primo lead</div>
+              <div className="text-xs text-text-muted mt-1">
+                Inserisci manualmente o attendi i lead da Facebook.
+              </div>
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {stats.map((s) => {
@@ -172,7 +225,7 @@ export default async function DashboardPage() {
                         {c.customers?.full_name ?? "—"}
                       </div>
                       <div className="text-xs text-text-subtle mt-0.5">
-                        {[c.vehicle_make, c.vehicle_model, c.vehicle_plate]
+                        {[c.vehicles?.make, c.vehicles?.model, c.vehicles?.plate]
                           .filter(Boolean)
                           .join(" · ") || "Auto non specificata"}
                       </div>

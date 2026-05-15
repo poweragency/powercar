@@ -1,57 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Save, Copy, Check, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { profileFormSchema, type ProfileFormValues } from "@/lib/schemas";
 import type { Profile } from "@/types/database.types";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  initialProfile: Profile | null;
+  initialProfile: Profile;
   userEmail: string;
 }
 
 export function SettingsForm({ initialProfile, userEmail }: Props) {
-  const supabase = createClient();
-  const [profile, setProfile] = useState<Profile | null>(initialProfile);
-  const [workshopName, setWorkshopName] = useState(profile?.workshop_name ?? "");
-  const [phone, setPhone] = useState(profile?.phone ?? "");
-  const [fbPageId, setFbPageId] = useState(profile?.fb_page_id ?? "");
-  const [fbToken, setFbToken] = useState(profile?.fb_page_access_token ?? "");
+  const supabase = useMemo(() => createClient(), []);
+  const [profile, setProfile] = useState<Profile>(initialProfile);
+  const [form, setForm] = useState<ProfileFormValues>({
+    workshop_name: initialProfile.workshop_name ?? "",
+    phone: initialProfile.phone ?? null,
+    vat_number: initialProfile.vat_number ?? null,
+    tax_code: initialProfile.tax_code ?? null,
+    address: initialProfile.address ?? null,
+    city: initialProfile.city ?? null,
+    postal_code: initialProfile.postal_code ?? null,
+    province: initialProfile.province ?? null,
+    iban: initialProfile.iban ?? null,
+    invoice_prefix: initialProfile.invoice_prefix ?? "PREV",
+    fb_page_id: initialProfile.fb_page_id ?? null,
+    fb_page_access_token: initialProfile.fb_page_access_token ?? null,
+  });
+  const [errors, setErrors] = useState<Partial<Record<keyof ProfileFormValues, string>>>({});
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [showGuide, setShowGuide] = useState(false);
 
+  function setField<K extends keyof ProfileFormValues>(key: K, value: ProfileFormValues[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((e) => ({ ...e, [key]: undefined }));
+  }
+
   async function handleSave() {
-    if (!workshopName.trim()) {
-      setError("Il nome carrozzeria è obbligatorio");
+    const result = profileFormSchema.safeParse(form);
+    if (!result.success) {
+      const flat: Partial<Record<keyof ProfileFormValues, string>> = {};
+      for (const issue of result.error.issues) {
+        flat[issue.path[0] as keyof ProfileFormValues] = issue.message;
+      }
+      setErrors(flat);
+      toast.error("Controlla i campi");
       return;
     }
     setSaving(true);
-    setError(null);
     const { data, error } = await supabase
       .from("profiles")
-      .update({
-        workshop_name: workshopName,
-        phone: phone || null,
-        fb_page_id: fbPageId || null,
-        fb_page_access_token: fbToken || null,
-      })
-      .eq("id", profile!.id)
+      .update(result.data)
+      .eq("id", profile.id)
       .select()
       .single();
     setSaving(false);
-    if (error) {
-      setError(error.message);
+    if (error || !data) {
+      toast.error("Salvataggio fallito", { description: error?.message });
       return;
     }
-    if (data) {
-      setProfile(data);
-      setSavedAt(Date.now());
-      setTimeout(() => setSavedAt(null), 2500);
-    }
+    setProfile(data);
+    setSavedAt(Date.now());
+    setTimeout(() => setSavedAt(null), 2500);
+    toast.success("Impostazioni salvate");
   }
 
   function copyToClipboard(value: string, key: string) {
@@ -65,28 +81,27 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
       ? window.location.origin
       : "https://TUO-DOMINIO.com";
   const webhookUrl = `${origin}/api/webhooks/facebook`;
-  const verifyToken = profile?.fb_verify_token ?? "—";
+  const verifyToken = profile.fb_verify_token ?? "—";
 
   return (
     <div className="max-w-2xl mx-auto p-8 pb-32">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold">Impostazioni</h1>
         <p className="text-sm text-text-muted mt-1">
-          Account e collegamento con Facebook Ads
+          Account, dati fiscali e collegamento con Facebook Ads
         </p>
       </div>
 
-      {/* Account */}
       <div className="card p-6 mb-5 space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-text-subtle">
           Account
         </h2>
 
-        <Field label="Nome carrozzeria">
+        <Field label="Nome carrozzeria *" error={errors.workshop_name}>
           <input
             type="text"
-            value={workshopName}
-            onChange={(e) => setWorkshopName(e.target.value)}
+            value={form.workshop_name}
+            onChange={(e) => setField("workshop_name", e.target.value)}
             className="input-base"
             placeholder="Carrozzeria Rossi"
           />
@@ -101,44 +116,136 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
           />
         </Field>
 
-        <Field label="Telefono">
+        <Field label="Telefono" error={errors.phone}>
           <input
             type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            value={form.phone ?? ""}
+            onChange={(e) => setField("phone", e.target.value || null)}
             className="input-base"
             placeholder="06 1234567"
           />
         </Field>
       </div>
 
-      {/* FB Integration */}
+      <div className="card p-6 mb-5 space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-subtle">
+            Dati fiscali (per preventivi e fatture)
+          </h2>
+          <p className="text-xs text-text-muted mt-1.5">
+            Verranno stampati sui PDF di preventivi e fatture.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Partita IVA" error={errors.vat_number}>
+            <input
+              type="text"
+              value={form.vat_number ?? ""}
+              onChange={(e) => setField("vat_number", e.target.value || null)}
+              className="input-base font-mono"
+              placeholder="12345678901"
+            />
+          </Field>
+          <Field label="Codice fiscale" error={errors.tax_code}>
+            <input
+              type="text"
+              value={form.tax_code ?? ""}
+              onChange={(e) => setField("tax_code", e.target.value || null)}
+              className="input-base font-mono"
+            />
+          </Field>
+        </div>
+
+        <Field label="Indirizzo" error={errors.address}>
+          <input
+            type="text"
+            value={form.address ?? ""}
+            onChange={(e) => setField("address", e.target.value || null)}
+            className="input-base"
+            placeholder="Via Roma 1"
+          />
+        </Field>
+
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="CAP" error={errors.postal_code}>
+            <input
+              type="text"
+              value={form.postal_code ?? ""}
+              onChange={(e) => setField("postal_code", e.target.value || null)}
+              className="input-base"
+            />
+          </Field>
+          <Field label="Città" error={errors.city}>
+            <input
+              type="text"
+              value={form.city ?? ""}
+              onChange={(e) => setField("city", e.target.value || null)}
+              className="input-base"
+            />
+          </Field>
+          <Field label="Prov." error={errors.province}>
+            <input
+              type="text"
+              value={form.province ?? ""}
+              onChange={(e) => setField("province", (e.target.value || "").toUpperCase() || null)}
+              className="input-base"
+              maxLength={2}
+            />
+          </Field>
+        </div>
+
+        <Field label="IBAN" error={errors.iban}>
+          <input
+            type="text"
+            value={form.iban ?? ""}
+            onChange={(e) => setField("iban", (e.target.value || "").toUpperCase() || null)}
+            className="input-base font-mono"
+            placeholder="IT60 X054 2811 1010 0000 0123 456"
+          />
+        </Field>
+
+        <Field
+          label="Prefisso numerazione preventivi/fatture"
+          error={errors.invoice_prefix}
+          hint="Es. PREV o FATT — i numeri saranno tipo PREV-2026-001"
+        >
+          <input
+            type="text"
+            value={form.invoice_prefix ?? ""}
+            onChange={(e) => setField("invoice_prefix", e.target.value.toUpperCase() || null)}
+            className="input-base font-mono"
+            placeholder="PREV"
+          />
+        </Field>
+      </div>
+
       <div className="card p-6 mb-5 space-y-4">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-text-subtle">
             Collegamento Facebook Ads
           </h2>
           <p className="text-xs text-text-muted mt-1.5">
-            Compila i 2 campi qui sotto per ricevere automaticamente i lead
-            delle tue pubblicità Facebook.
+            Compila i 2 campi qui sotto per ricevere automaticamente i lead delle tue
+            pubblicità Facebook.
           </p>
         </div>
 
-        <Field label="ID Pagina Facebook">
+        <Field label="ID Pagina Facebook" error={errors.fb_page_id}>
           <input
             type="text"
-            value={fbPageId}
-            onChange={(e) => setFbPageId(e.target.value.trim())}
+            value={form.fb_page_id ?? ""}
+            onChange={(e) => setField("fb_page_id", e.target.value.trim() || null)}
             className="input-base font-mono text-sm"
             placeholder="123456789012345"
           />
         </Field>
 
-        <Field label="Token di accesso Pagina">
+        <Field label="Token di accesso Pagina" error={errors.fb_page_access_token}>
           <input
             type="password"
-            value={fbToken}
-            onChange={(e) => setFbToken(e.target.value.trim())}
+            value={form.fb_page_access_token ?? ""}
+            onChange={(e) => setField("fb_page_access_token", e.target.value.trim() || null)}
             className="input-base font-mono text-sm"
             placeholder="EAAxxxxx..."
           />
@@ -150,26 +257,21 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
           className="flex items-center gap-2 text-sm text-accent hover:underline w-full text-left"
         >
           <ChevronDown
-            className={cn(
-              "w-4 h-4 transition-transform",
-              showGuide && "rotate-180"
-            )}
+            className={cn("w-4 h-4 transition-transform", showGuide && "rotate-180")}
           />
-          {showGuide
-            ? "Nascondi la guida passo-passo"
-            : "Mostra la guida passo-passo"}
+          {showGuide ? "Nascondi la guida passo-passo" : "Mostra la guida passo-passo"}
         </button>
 
-        {showGuide && <FacebookGuide webhookUrl={webhookUrl} verifyToken={verifyToken} copyToClipboard={copyToClipboard} copied={copied} />}
+        {showGuide && (
+          <FacebookGuide
+            webhookUrl={webhookUrl}
+            verifyToken={verifyToken}
+            copyToClipboard={copyToClipboard}
+            copied={copied}
+          />
+        )}
       </div>
 
-      {error && (
-        <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md p-3 mb-5">
-          {error}
-        </div>
-      )}
-
-      {/* Save bar sticky */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-8 sm:bottom-6 z-30">
         <div className="bg-bg-card border border-border rounded-lg px-4 py-3 shadow-card-hover flex items-center gap-4">
           <span className="text-xs">
@@ -179,7 +281,7 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
               <span className="text-text-subtle">Modifiche non salvate</span>
             )}
           </span>
-          <button onClick={handleSave} disabled={saving} className="btn-primary">
+          <button onClick={handleSave} disabled={saving} className="btn-primary" type="button">
             <Save className="w-4 h-4" />
             {saving ? "Salvataggio..." : "Salva"}
           </button>
@@ -191,17 +293,21 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
 
 function Field({
   label,
+  error,
+  hint,
   children,
 }: {
   label: string;
+  error?: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-text-muted mb-1.5">
-        {label}
-      </label>
+      <label className="block text-xs font-medium text-text-muted mb-1.5">{label}</label>
       {children}
+      {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
+      {!error && hint && <p className="mt-1 text-[11px] text-text-subtle">{hint}</p>}
     </div>
   );
 }
@@ -253,7 +359,7 @@ function FacebookGuide({
             </a>
           </li>
           <li>In alto a destra, click su <strong>Generate Access Token</strong></li>
-          <li>Seleziona la tua Pagina dall'elenco</li>
+          <li>Seleziona la tua Pagina dall&apos;elenco</li>
           <li>
             Nei permessi richiesti spunta queste 2 voci:
             <div className="bg-bg-card border border-border rounded p-2 mt-1.5 font-mono text-xs">
@@ -383,14 +489,12 @@ function CopyField({
           type="text"
           value={value}
           readOnly
-          className={cn(
-            "input-base flex-1 text-xs",
-            mono && "font-mono"
-          )}
+          className={cn("input-base flex-1 text-xs", mono && "font-mono")}
         />
         <button
           onClick={onCopy}
           className="btn-secondary shrink-0 py-2"
+          type="button"
         >
           {copied ? (
             <Check className="w-3.5 h-3.5 text-emerald-400" />
