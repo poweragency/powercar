@@ -27,7 +27,6 @@ const baseNav = [
   { href: "/customers", label: "Clienti", icon: Users },
   { href: "/cases", label: "Pratiche", icon: FolderKanban },
   { href: "/calendar", label: "Calendario", icon: Calendar },
-  { href: "/settings", label: "Impostazioni", icon: Settings },
 ];
 
 interface Props {
@@ -143,8 +142,20 @@ export function Sidebar({
             );
           })}
 
-          {isAdmin && (
-            <div className="mt-auto pt-3 border-t border-border">
+          <div className="mt-auto pt-3 border-t border-border space-y-1">
+            <Link
+              href="/settings"
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                pathname === "/settings" || pathname.startsWith("/settings/")
+                  ? "bg-accent/10 text-accent"
+                  : "text-text-muted hover:text-text hover:bg-bg-hover"
+              )}
+            >
+              <Settings className="w-4 h-4" strokeWidth={2} />
+              Impostazioni
+            </Link>
+            {isAdmin && (
               <Link
                 href="/admin"
                 className={cn(
@@ -157,8 +168,8 @@ export function Sidebar({
                 <ShieldCheck className="w-4 h-4" strokeWidth={2} />
                 Admin
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </nav>
 
         <div className="p-3 border-t border-border">
