@@ -146,24 +146,43 @@ export function Sidebar({
               </Link>
             );
           })}
+
+          {(isOwner || isAdmin) && (
+            <div className="mt-auto pt-3 border-t border-border space-y-1">
+              {isOwner && (
+                <Link
+                  href="/team"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    pathname === "/team" || pathname.startsWith("/team/")
+                      ? "bg-accent/10 text-accent"
+                      : "text-text-muted hover:text-text hover:bg-bg-hover"
+                  )}
+                >
+                  <UserCog className="w-4 h-4" strokeWidth={2} />
+                  Team
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    pathname === "/admin" || pathname.startsWith("/admin/")
+                      ? "bg-accent/10 text-accent"
+                      : "text-text-muted hover:text-text hover:bg-bg-hover"
+                  )}
+                >
+                  <ShieldCheck className="w-4 h-4" strokeWidth={2} />
+                  Admin
+                </Link>
+              )}
+            </div>
+          )}
         </nav>
 
-        <div className="p-3 border-t border-border space-y-1 mb-1">
-          {isOwner && (
-            <Link
-              href="/team"
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                pathname === "/team" || pathname.startsWith("/team/")
-                  ? "bg-accent/10 text-accent"
-                  : "text-text-muted hover:text-text hover:bg-bg-hover"
-              )}
-            >
-              <UserCog className="w-4 h-4" strokeWidth={2} />
-              Team
-            </Link>
-          )}
-          {isOwner && (
+        {isOwner && (
+          <div className="p-3 border-t border-border">
             <Link
               href="/settings"
               className={cn(
@@ -176,22 +195,8 @@ export function Sidebar({
               <Settings className="w-4 h-4" strokeWidth={2} />
               Impostazioni
             </Link>
-          )}
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                pathname === "/admin" || pathname.startsWith("/admin/")
-                  ? "bg-accent/10 text-accent"
-                  : "text-text-muted hover:text-text hover:bg-bg-hover"
-              )}
-            >
-              <ShieldCheck className="w-4 h-4" strokeWidth={2} />
-              Admin
-            </Link>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="p-3 border-t border-border">
           <div className="flex items-center gap-3 px-3 py-2 mb-2">
