@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { useCommandPalette } from "./CommandPalette";
+import { NotificationBell } from "./NotificationBell";
 
 const baseNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -28,6 +29,7 @@ const baseNav = [
 ];
 
 interface Props {
+  userId: string;
   userEmail: string;
   workshopName: string;
   logoUrl: string | null;
@@ -37,6 +39,7 @@ interface Props {
 }
 
 export function Sidebar({
+  userId,
   userEmail,
   workshopName,
   logoUrl,
@@ -191,6 +194,7 @@ export function Sidebar({
                 Esci
               </button>
             </form>
+            <NotificationBell ownerId={userId} />
             <ThemeToggle />
           </div>
         </div>

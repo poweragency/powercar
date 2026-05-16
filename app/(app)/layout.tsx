@@ -28,6 +28,7 @@ export default async function AppLayout({
     <CommandPaletteProvider>
       <GlobalShortcuts />
       <AppShell
+        userId={user.id}
         userEmail={user.email ?? ""}
         workshopName={profile?.workshop_name ?? "La mia carrozzeria"}
         logoUrl={profile?.logo_url ?? null}

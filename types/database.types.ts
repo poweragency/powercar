@@ -436,6 +436,39 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          owner_id: string
+          read: boolean
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          owner_id: string
+          read?: boolean
+          title: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          owner_id?: string
+          read?: boolean
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -633,6 +666,12 @@ export type Database = {
         | "pagato"
         | "scaduto"
       lead_status: "nuovo" | "contattato" | "preventivo" | "cliente" | "perso"
+      notification_type:
+        | "new_lead"
+        | "appointment_soon"
+        | "case_status_change"
+        | "invoice_paid"
+        | "system"
     }
     CompositeTypes: { [_ in never]: never }
   }
@@ -673,4 +712,7 @@ export type InvoiceStatus = Database["public"]["Enums"]["invoice_status"]
 
 export type InvoiceItem = Database["public"]["Tables"]["invoice_items"]["Row"]
 export type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"]
+
+export type Notification = Database["public"]["Tables"]["notifications"]["Row"]
+export type NotificationType = Database["public"]["Enums"]["notification_type"]
 export type InvoiceItemUpdate = Database["public"]["Tables"]["invoice_items"]["Update"]

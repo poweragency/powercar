@@ -5,6 +5,7 @@ import { Menu, Wrench } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 
 interface Props {
+  userId: string;
   userEmail: string;
   workshopName: string;
   logoUrl: string | null;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function AppShell({
+  userId,
   userEmail,
   workshopName,
   logoUrl,
@@ -24,6 +26,7 @@ export function AppShell({
   return (
     <div className="flex h-screen bg-bg overflow-hidden">
       <Sidebar
+        userId={userId}
         userEmail={userEmail}
         workshopName={workshopName}
         logoUrl={logoUrl}
