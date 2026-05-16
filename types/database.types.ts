@@ -599,6 +599,10 @@ export type Database = {
     }
     Views: { [_ in never]: never }
     Functions: {
+      get_dashboard_stats: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
       create_invoice_draft: {
         Args: {
           p_case_id: string

@@ -18,27 +18,24 @@ import { Sparkline } from "@/components/dashboard/Sparkline";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { StatusDonut } from "@/components/dashboard/StatusDonut";
 
-export const dynamic = "force-dynamic";
+// Revalidate ogni 30s: dashboard non deve essere strettamente real-time
+export const revalidate = 30;
 
 const DAYS_WINDOW = 30;
 
-function bucketByDay(
-  items: Array<{ created_at: string; value?: number }>,
-  days: number
-): number[] {
-  const buckets = new Array<number>(days).fill(0);
-  const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - (days - 1));
-  for (const it of items) {
-    const d = new Date(it.created_at);
-    const dayIdx = Math.floor((d.getTime() - start.getTime()) / 86_400_000);
-    if (dayIdx >= 0 && dayIdx < days) {
-      buckets[dayIdx] += it.value ?? 1;
-    }
-  }
-  return buckets;
+interface DashboardStats {
+  leads_total: number;
+  customers_total: number;
+  open_cases_total: number;
+  completed_cases_total: number;
+  revenue_total: number | string;
+  revenue_collected: number | string;
+  leads_spark: number[];
+  customers_spark: number[];
+  open_cases_spark: number[];
+  completed_spark: number[];
+  revenue_daily: Array<number | string>;
+  status_counts: Partial<Record<CaseStatus, number>>;
 }
 
 export default async function DashboardPage() {
@@ -47,38 +44,24 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("workshop_name")
-    .eq("id", user!.id)
-    .single();
-
   const [
-    { count: leadsCount },
-    { count: customersCount },
-    { data: openCases },
-    { data: completedCases },
-    { data: allLeadsForSpark },
-    { data: allCustomersForSpark },
-    { data: revenueRows },
+    { data: profile },
+    { data: statsJson },
     { data: latestLeads },
     { data: latestCases },
     { data: todayAppointments },
   ] = await Promise.all([
-    supabase.from("leads").select("*", { count: "exact", head: true }),
-    supabase.from("customers").select("*", { count: "exact", head: true }),
     supabase
-      .from("cases")
-      .select("status, created_at")
-      .in("status", ["preventivo", "attesa_pezzi", "lavorazione"]),
+      .from("profiles")
+      .select("workshop_name")
+      .eq("id", user!.id)
+      .single(),
+    supabase.rpc("get_dashboard_stats", { p_days: DAYS_WINDOW }),
     supabase
-      .from("cases")
-      .select("status, created_at")
-      .in("status", ["completata", "consegnata"]),
-    supabase.from("leads").select("created_at"),
-    supabase.from("customers").select("created_at"),
-    supabase.from("cases").select("price, status, created_at"),
-    supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(5),
+      .from("leads")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(5),
     supabase
       .from("cases")
       .select(
@@ -95,36 +78,15 @@ export default async function DashboardPage() {
       .limit(5),
   ]);
 
-  const revenue =
-    revenueRows?.reduce((sum, c) => sum + Number(c.price ?? 0), 0) ?? 0;
-  const collected =
-    revenueRows
-      ?.filter((c) => c.status === "consegnata")
-      .reduce((sum, c) => sum + Number(c.price ?? 0), 0) ?? 0;
+  const stats = (statsJson ?? {}) as unknown as DashboardStats;
 
-  const leadsSpark = bucketByDay(
-    (allLeadsForSpark ?? []).map((l) => ({ created_at: l.created_at })),
-    DAYS_WINDOW
-  );
-  const customersSpark = bucketByDay(
-    (allCustomersForSpark ?? []).map((c) => ({ created_at: c.created_at })),
-    DAYS_WINDOW
-  );
-  const openCasesSpark = bucketByDay(
-    (openCases ?? []).map((c) => ({ created_at: c.created_at })),
-    DAYS_WINDOW
-  );
-  const completedSpark = bucketByDay(
-    (completedCases ?? []).map((c) => ({ created_at: c.created_at })),
-    DAYS_WINDOW
-  );
-  const revenueDaily = bucketByDay(
-    (revenueRows ?? []).map((r) => ({
-      created_at: r.created_at,
-      value: Number(r.price ?? 0),
-    })),
-    DAYS_WINDOW
-  );
+  const revenue = Number(stats.revenue_total ?? 0);
+  const collected = Number(stats.revenue_collected ?? 0);
+  const leadsSpark = stats.leads_spark ?? [];
+  const customersSpark = stats.customers_spark ?? [];
+  const openCasesSpark = stats.open_cases_spark ?? [];
+  const completedSpark = stats.completed_spark ?? [];
+  const revenueDaily = (stats.revenue_daily ?? []).map((v) => Number(v));
 
   const statusCounts: Record<CaseStatus, number> = {
     preventivo: 0,
@@ -133,17 +95,20 @@ export default async function DashboardPage() {
     completata: 0,
     consegnata: 0,
   };
-  for (const c of revenueRows ?? []) {
-    statusCounts[c.status as CaseStatus] += 1;
+  if (stats.status_counts) {
+    for (const k of Object.keys(stats.status_counts) as CaseStatus[]) {
+      statusCounts[k] = stats.status_counts[k] ?? 0;
+    }
   }
 
-  const totalCases = (openCases?.length ?? 0) + (completedCases?.length ?? 0);
+  const totalCases =
+    (stats.open_cases_total ?? 0) + (stats.completed_cases_total ?? 0);
   const todayAppointmentsCount = todayAppointments?.length ?? 0;
 
-  const stats = [
+  const statCards = [
     {
       label: "Lead totali",
-      value: leadsCount ?? 0,
+      value: stats.leads_total ?? 0,
       icon: KanbanSquare,
       color: "text-status-info",
       stroke: "rgb(var(--status-info))",
@@ -151,7 +116,7 @@ export default async function DashboardPage() {
     },
     {
       label: "Clienti convertiti",
-      value: customersCount ?? 0,
+      value: stats.customers_total ?? 0,
       icon: Users,
       color: "text-status-success",
       stroke: "rgb(var(--status-success))",
@@ -159,7 +124,7 @@ export default async function DashboardPage() {
     },
     {
       label: "Pratiche aperte",
-      value: openCases?.length ?? 0,
+      value: stats.open_cases_total ?? 0,
       icon: FolderKanban,
       color: "text-status-warning",
       stroke: "rgb(var(--status-warning))",
@@ -167,7 +132,7 @@ export default async function DashboardPage() {
     },
     {
       label: "Pratiche completate",
-      value: completedCases?.length ?? 0,
+      value: stats.completed_cases_total ?? 0,
       icon: CheckCircle2,
       color: "text-accent",
       stroke: "rgb(var(--accent))",
@@ -175,7 +140,7 @@ export default async function DashboardPage() {
     },
   ];
 
-  const isEmpty = (leadsCount ?? 0) === 0 && totalCases === 0;
+  const isEmpty = (stats.leads_total ?? 0) === 0 && totalCases === 0;
   const workshopName = profile?.workshop_name ?? "tua officina";
 
   return (
@@ -185,7 +150,7 @@ export default async function DashboardPage() {
         <p className="text-sm text-text-muted mt-1">
           {totalCases === 0
             ? "Iniziamo: aggiungi il primo lead o crea una pratica manuale."
-            : `Hai ${openCases?.length ?? 0} pratiche aperte${
+            : `Hai ${stats.open_cases_total ?? 0} pratiche aperte${
                 todayAppointmentsCount > 0
                   ? ` e ${todayAppointmentsCount} ${todayAppointmentsCount === 1 ? "appuntamento" : "appuntamenti"} oggi`
                   : ""
@@ -197,7 +162,7 @@ export default async function DashboardPage() {
 
       {/* KPI cards con sparkline */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {stats.map((s) => {
+        {statCards.map((s) => {
           const Icon = s.icon;
           return (
             <div
