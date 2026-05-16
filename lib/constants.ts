@@ -16,12 +16,23 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   perso: "Perso",
 };
 
-export const LEAD_STATUS_COLORS: Record<LeadStatus, { dot: string; bg: string; text: string }> = {
-  nuovo: { dot: "bg-blue-500", bg: "bg-blue-500/10", text: "text-blue-400" },
-  contattato: { dot: "bg-yellow-500", bg: "bg-yellow-500/10", text: "text-yellow-400" },
-  preventivo: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400" },
+export const LEAD_STATUS_COLORS: Record<
+  LeadStatus,
+  { dot: string; bg: string; text: string }
+> = {
+  nuovo: { dot: "bg-status-info", bg: "bg-status-info/10", text: "text-status-info" },
+  contattato: {
+    dot: "bg-status-warning",
+    bg: "bg-status-warning/10",
+    text: "text-status-warning",
+  },
+  preventivo: { dot: "bg-chart-5", bg: "bg-chart-5/10", text: "text-chart-5" },
   cliente: { dot: "bg-accent", bg: "bg-accent/10", text: "text-accent" },
-  perso: { dot: "bg-neutral-500", bg: "bg-neutral-500/10", text: "text-neutral-400" },
+  perso: {
+    dot: "bg-text-subtle",
+    bg: "bg-text-subtle/10",
+    text: "text-text-muted",
+  },
 };
 
 export const CASE_STATUS_ORDER: CaseStatus[] = [
@@ -41,9 +52,9 @@ export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
 };
 
 export const CASE_STATUS_COLORS: Record<CaseStatus, { bg: string; text: string }> = {
-  preventivo: { bg: "bg-purple-500/10", text: "text-purple-400" },
-  attesa_pezzi: { bg: "bg-yellow-500/10", text: "text-yellow-400" },
-  lavorazione: { bg: "bg-blue-500/10", text: "text-blue-400" },
-  completata: { bg: "bg-emerald-500/10", text: "text-emerald-400" },
+  preventivo: { bg: "bg-chart-5/10", text: "text-chart-5" },
+  attesa_pezzi: { bg: "bg-status-warning/10", text: "text-status-warning" },
+  lavorazione: { bg: "bg-status-info/10", text: "text-status-info" },
+  completata: { bg: "bg-status-success/10", text: "text-status-success" },
   consegnata: { bg: "bg-accent/10", text: "text-accent" },
 };

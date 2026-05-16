@@ -145,24 +145,24 @@ export default async function DashboardPage() {
       label: "Lead totali",
       value: leadsCount ?? 0,
       icon: KanbanSquare,
-      color: "text-blue-400",
-      stroke: "rgb(96 165 250)",
+      color: "text-status-info",
+      stroke: "rgb(var(--status-info))",
       data: leadsSpark,
     },
     {
       label: "Clienti convertiti",
       value: customersCount ?? 0,
       icon: Users,
-      color: "text-emerald-400",
-      stroke: "rgb(52 211 153)",
+      color: "text-status-success",
+      stroke: "rgb(var(--status-success))",
       data: customersSpark,
     },
     {
       label: "Pratiche aperte",
       value: openCases?.length ?? 0,
       icon: FolderKanban,
-      color: "text-yellow-400",
-      stroke: "rgb(250 204 21)",
+      color: "text-status-warning",
+      stroke: "rgb(var(--status-warning))",
       data: openCasesSpark,
     },
     {
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
       value: completedCases?.length ?? 0,
       icon: CheckCircle2,
       color: "text-accent",
-      stroke: "rgb(249 115 22)",
+      stroke: "rgb(var(--accent))",
       data: completedSpark,
     },
   ];
@@ -241,10 +241,10 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="card p-5 bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20 hover:shadow-card-hover transition-all">
+        <div className="card p-5 bg-gradient-to-br from-status-success/10 to-transparent border-status-success/20 hover:shadow-card-hover transition-all">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-md bg-emerald-500/20 flex items-center justify-center shrink-0">
-              <Wallet className="w-5 h-5 text-emerald-400" strokeWidth={2} />
+            <div className="w-10 h-10 rounded-md bg-status-success/20 flex items-center justify-center shrink-0">
+              <Wallet className="w-5 h-5 text-status-success" strokeWidth={2} />
             </div>
             <div className="min-w-0">
               <div className="text-xs uppercase tracking-wide text-text-muted">
@@ -258,7 +258,7 @@ export default async function DashboardPage() {
               </div>
             </div>
             <CheckCircle2
-              className="w-5 h-5 text-emerald-400 ml-auto shrink-0"
+              className="w-5 h-5 text-status-success ml-auto shrink-0"
               strokeWidth={2}
             />
           </div>
@@ -347,7 +347,7 @@ export default async function DashboardPage() {
                   className="px-5 py-3 hover:bg-bg-hover transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 text-[11px] font-medium flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-status-info/20 text-status-info text-[11px] font-medium flex items-center justify-center shrink-0">
                       {initials(lead.full_name)}
                     </div>
                     <div className="min-w-0 flex-1">

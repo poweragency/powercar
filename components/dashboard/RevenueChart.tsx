@@ -51,8 +51,8 @@ export function RevenueChart({ data }: Props) {
       >
         <defs>
           <linearGradient id="revenue-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(249 115 22)" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="rgb(249 115 22)" stopOpacity="0" />
+            <stop offset="0%" stopColor="rgb(var(--accent))" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="rgb(var(--accent))" stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -64,7 +64,7 @@ export function RevenueChart({ data }: Props) {
             y1={padding.top + chartH * p}
             x2={padding.left + chartW}
             y2={padding.top + chartH * p}
-            stroke="rgb(38 38 38)"
+            stroke="rgb(var(--border))"
             strokeWidth="1"
             strokeDasharray="2 4"
           />
@@ -74,7 +74,7 @@ export function RevenueChart({ data }: Props) {
         <path
           d={lineD}
           fill="none"
-          stroke="rgb(249 115 22)"
+          stroke="rgb(var(--accent))"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -86,7 +86,7 @@ export function RevenueChart({ data }: Props) {
             cx={points[points.length - 1][0]}
             cy={points[points.length - 1][1]}
             r="3"
-            fill="rgb(249 115 22)"
+            fill="rgb(var(--accent))"
           />
         )}
 
@@ -95,7 +95,7 @@ export function RevenueChart({ data }: Props) {
           x={padding.left}
           y={height - 4}
           fontSize="10"
-          fill="rgb(115 115 115)"
+          fill="rgb(var(--text-subtle))"
         >
           {dateAt(data.length - 1)}
         </text>
@@ -103,7 +103,7 @@ export function RevenueChart({ data }: Props) {
           x={padding.left + chartW / 2}
           y={height - 4}
           fontSize="10"
-          fill="rgb(115 115 115)"
+          fill="rgb(var(--text-subtle))"
           textAnchor="middle"
         >
           {dateAt(Math.floor(data.length / 2))}
@@ -112,7 +112,7 @@ export function RevenueChart({ data }: Props) {
           x={padding.left + chartW}
           y={height - 4}
           fontSize="10"
-          fill="rgb(115 115 115)"
+          fill="rgb(var(--text-subtle))"
           textAnchor="end"
         >
           Oggi

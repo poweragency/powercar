@@ -15,6 +15,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "./ThemeToggle";
 
 const baseNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -33,9 +34,6 @@ interface Props {
 }
 
 export function Sidebar({ userEmail, workshopName, isAdmin, open, onClose }: Props) {
-  const nav = isAdmin
-    ? [...baseNav, { href: "/admin", label: "Admin", icon: ShieldCheck }]
-    : baseNav;
   const pathname = usePathname();
 
   useEffect(() => {
@@ -92,8 +90,8 @@ export function Sidebar({ userEmail, workshopName, isAdmin, open, onClose }: Pro
           </button>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {nav.map((item) => {
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto flex flex-col">
+          {baseNav.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
@@ -113,6 +111,23 @@ export function Sidebar({ userEmail, workshopName, isAdmin, open, onClose }: Pro
               </Link>
             );
           })}
+
+          {isAdmin && (
+            <div className="mt-auto pt-3 border-t border-border">
+              <Link
+                href="/admin"
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  pathname === "/admin" || pathname.startsWith("/admin/")
+                    ? "bg-accent/10 text-accent"
+                    : "text-text-muted hover:text-text hover:bg-bg-hover"
+                )}
+              >
+                <ShieldCheck className="w-4 h-4" strokeWidth={2} />
+                Admin
+              </Link>
+            </div>
+          )}
         </nav>
 
         <div className="p-3 border-t border-border">
@@ -132,15 +147,18 @@ export function Sidebar({ userEmail, workshopName, isAdmin, open, onClose }: Pro
               </div>
             </div>
           </div>
-          <form action="/auth/signout" method="post">
-            <button
-              type="submit"
-              className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-sm text-text-muted hover:text-text hover:bg-bg-hover transition-colors"
-            >
-              <LogOut className="w-4 h-4" strokeWidth={2} />
-              Esci
-            </button>
-          </form>
+          <div className="flex items-center gap-1">
+            <form action="/auth/signout" method="post" className="flex-1">
+              <button
+                type="submit"
+                className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-sm text-text-muted hover:text-text hover:bg-bg-hover transition-colors"
+              >
+                <LogOut className="w-4 h-4" strokeWidth={2} />
+                Esci
+              </button>
+            </form>
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
     </>

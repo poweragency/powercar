@@ -2,11 +2,11 @@ import { CASE_STATUS_LABELS, CASE_STATUS_ORDER } from "@/lib/constants";
 import type { CaseStatus } from "@/types/database.types";
 
 const COLORS: Record<CaseStatus, string> = {
-  preventivo: "rgb(168 85 247)", // purple
-  attesa_pezzi: "rgb(250 204 21)", // yellow
-  lavorazione: "rgb(96 165 250)", // blue
-  completata: "rgb(52 211 153)", // emerald
-  consegnata: "rgb(249 115 22)", // accent
+  preventivo: "rgb(var(--chart-5))",
+  attesa_pezzi: "rgb(var(--status-warning))",
+  lavorazione: "rgb(var(--status-info))",
+  completata: "rgb(var(--status-success))",
+  consegnata: "rgb(var(--accent))",
 };
 
 interface Props {
@@ -58,7 +58,7 @@ export function StatusDonut({ counts }: Props) {
           textAnchor="middle"
           fontSize="22"
           fontWeight="600"
-          fill="rgb(250 250 250)"
+          fill="rgb(var(--text))"
         >
           {total}
         </text>
@@ -67,7 +67,7 @@ export function StatusDonut({ counts }: Props) {
           y={cy + 12}
           textAnchor="middle"
           fontSize="9"
-          fill="rgb(115 115 115)"
+          fill="rgb(var(--text-subtle))"
           letterSpacing="1"
         >
           PRATICHE
