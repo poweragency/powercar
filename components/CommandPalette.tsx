@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import type { UserRole } from "@/types/database.types";
 
 type Group = "Pratiche" | "Lead" | "Clienti" | "Veicoli" | "Appuntamenti" | "Azioni";
 
@@ -37,7 +38,11 @@ interface Item {
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
 }
 
-const STATIC_ACTIONS: Item[] = [
+interface ActionDef extends Item {
+  ownerOnly?: boolean;
+}
+
+const STATIC_ACTIONS: ActionDef[] = [
   {
     id: "a-dashboard",
     group: "Azioni",
@@ -72,6 +77,7 @@ const STATIC_ACTIONS: Item[] = [
     label: "Vai a Impostazioni",
     href: "/settings",
     icon: Settings,
+    ownerOnly: true,
   },
   {
     id: "a-new-lead",
@@ -89,12 +95,18 @@ interface CommandContext {
 
 const Ctx = createContext<CommandContext | null>(null);
 
-export function CommandPaletteProvider({ children }: { children: React.ReactNode }) {
+export function CommandPaletteProvider({
+  role = "owner",
+  children,
+}: {
+  role?: UserRole;
+  children: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <Ctx.Provider value={{ open, setOpen }}>
       {children}
-      <CommandPalette open={open} onOpenChange={setOpen} />
+      <CommandPalette open={open} onOpenChange={setOpen} role={role} />
     </Ctx.Provider>
   );
 }
@@ -108,10 +120,13 @@ export function useCommandPalette() {
 function CommandPalette({
   open,
   onOpenChange,
+  role,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  role: UserRole;
 }) {
+  const isOwner = role === "owner";
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [query, setQuery] = useState("");
@@ -164,9 +179,7 @@ function CommandPalette({
           .limit(5),
         supabase
           .from("cases")
-          .select(
-            "id, status, customers!inner(full_name), vehicles(make, model, plate)"
-          )
+          .select("id, status, customers!inner(full_name), vehicles(make, model, plate)")
           .or(`full_name.ilike.${like},plate.ilike.${like}`, {
             referencedTable: "customers",
           })
@@ -209,10 +222,13 @@ function CommandPalette({
         });
       }
       for (const k of cases.data ?? []) {
-        const cust = (k.customers as { full_name?: string } | null)?.full_name ?? "Cliente";
-        const veh = k.vehicles as
-          | { make?: string | null; model?: string | null; plate?: string | null }
-          | null;
+        const cust =
+          (k.customers as { full_name?: string } | null)?.full_name ?? "Cliente";
+        const veh = k.vehicles as {
+          make?: string | null;
+          model?: string | null;
+          plate?: string | null;
+        } | null;
         const vehStr = veh
           ? [veh.make, veh.model, veh.plate].filter(Boolean).join(" · ")
           : "";
@@ -262,11 +278,12 @@ function CommandPalette({
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const visible = STATIC_ACTIONS.filter((a) => isOwner || !a.ownerOnly);
     const actions = q
-      ? STATIC_ACTIONS.filter((a) => a.label.toLowerCase().includes(q))
-      : STATIC_ACTIONS;
+      ? visible.filter((a) => a.label.toLowerCase().includes(q))
+      : visible;
     return [...dynamic, ...actions];
-  }, [dynamic, query]);
+  }, [dynamic, query, isOwner]);
 
   useEffect(() => {
     setActiveIdx(0);
@@ -355,7 +372,14 @@ function CommandPalette({
             </div>
           ) : (
             (
-              ["Pratiche", "Lead", "Clienti", "Veicoli", "Appuntamenti", "Azioni"] as Group[]
+              [
+                "Pratiche",
+                "Lead",
+                "Clienti",
+                "Veicoli",
+                "Appuntamenti",
+                "Azioni",
+              ] as Group[]
             ).map((g) => {
               const arr = grouped.get(g);
               if (!arr || arr.length === 0) return null;
@@ -396,9 +420,7 @@ function CommandPalette({
                             </div>
                           )}
                         </div>
-                        {active && (
-                          <CornerDownLeft className="w-3 h-3 text-accent" />
-                        )}
+                        {active && <CornerDownLeft className="w-3 h-3 text-accent" />}
                       </button>
                     );
                   })}
@@ -410,21 +432,15 @@ function CommandPalette({
 
         <div className="border-t border-border px-3 py-2 flex items-center gap-3 text-[11px] text-text-subtle">
           <span className="inline-flex items-center gap-1">
-            <kbd className="px-1 py-0.5 bg-bg-hover border border-border rounded">
-              ↑↓
-            </kbd>
+            <kbd className="px-1 py-0.5 bg-bg-hover border border-border rounded">↑↓</kbd>
             naviga
           </span>
           <span className="inline-flex items-center gap-1">
-            <kbd className="px-1 py-0.5 bg-bg-hover border border-border rounded">
-              ↵
-            </kbd>
+            <kbd className="px-1 py-0.5 bg-bg-hover border border-border rounded">↵</kbd>
             apri
           </span>
           <span className="ml-auto inline-flex items-center gap-1">
-            <kbd className="px-1 py-0.5 bg-bg-hover border border-border rounded">
-              ⌘K
-            </kbd>
+            <kbd className="px-1 py-0.5 bg-bg-hover border border-border rounded">⌘K</kbd>
             apri ovunque
           </span>
         </div>

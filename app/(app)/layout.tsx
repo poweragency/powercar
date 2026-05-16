@@ -22,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const role = profile?.role ?? "owner";
 
   return (
-    <CommandPaletteProvider>
+    <CommandPaletteProvider role={role}>
       <GlobalShortcuts />
       <AppShell
         userId={user.id}
