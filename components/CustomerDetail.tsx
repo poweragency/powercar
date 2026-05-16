@@ -10,13 +10,15 @@ import { useConfirm } from "./ConfirmDialog";
 import { Breadcrumb } from "./ui/Breadcrumb";
 import { formatDateTime, initials } from "@/lib/utils";
 import { Field, Section } from "./case/Field";
-import type { Customer } from "@/types/database.types";
+import { VehiclesPanel } from "./customer/VehiclesPanel";
+import type { Customer, Vehicle } from "@/types/database.types";
 
 interface Props {
   initialCustomer: Customer;
+  initialVehicles: Vehicle[];
 }
 
-export function CustomerDetail({ initialCustomer }: Props) {
+export function CustomerDetail({ initialCustomer, initialVehicles }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const confirm = useConfirm();
@@ -121,37 +123,43 @@ export function CustomerDetail({ initialCustomer }: Props) {
         </button>
       </div>
 
-      <Section title="Anagrafica">
-        <Field label="Nome completo *" htmlFor="cust-name" error={errors.full_name}>
-          <input
-            id="cust-name"
-            value={form.full_name}
-            onChange={(e) => setField("full_name", e.target.value)}
-            className="input-base"
-            placeholder="Mario Rossi"
-          />
-        </Field>
-        <Field label="Telefono" htmlFor="cust-phone" error={errors.phone}>
-          <input
-            id="cust-phone"
-            type="tel"
-            value={form.phone ?? ""}
-            onChange={(e) => setField("phone", e.target.value || null)}
-            className="input-base"
-            placeholder="+39 333 1234567"
-          />
-        </Field>
-        <Field label="Email" htmlFor="cust-email" error={errors.email}>
-          <input
-            id="cust-email"
-            type="email"
-            value={form.email ?? ""}
-            onChange={(e) => setField("email", e.target.value || null)}
-            className="input-base"
-            placeholder="mario@example.com"
-          />
-        </Field>
-      </Section>
+      <div className="space-y-8">
+        <Section title="Anagrafica">
+          <Field label="Nome completo *" htmlFor="cust-name" error={errors.full_name}>
+            <input
+              id="cust-name"
+              value={form.full_name}
+              onChange={(e) => setField("full_name", e.target.value)}
+              className="input-base"
+              placeholder="Mario Rossi"
+            />
+          </Field>
+          <Field label="Telefono" htmlFor="cust-phone" error={errors.phone}>
+            <input
+              id="cust-phone"
+              type="tel"
+              value={form.phone ?? ""}
+              onChange={(e) => setField("phone", e.target.value || null)}
+              className="input-base"
+              placeholder="+39 333 1234567"
+            />
+          </Field>
+          <Field label="Email" htmlFor="cust-email" error={errors.email}>
+            <input
+              id="cust-email"
+              type="email"
+              value={form.email ?? ""}
+              onChange={(e) => setField("email", e.target.value || null)}
+              className="input-base"
+              placeholder="mario@example.com"
+            />
+          </Field>
+        </Section>
+
+        <div className="border-t border-border pt-6">
+          <VehiclesPanel customerId={customer.id} initialVehicles={initialVehicles} />
+        </div>
+      </div>
 
       {/* Save bar */}
       <div className="fixed bottom-0 left-0 right-0 lg:left-60 px-8 py-3 bg-bg-card/95 backdrop-blur border-t border-border z-30">

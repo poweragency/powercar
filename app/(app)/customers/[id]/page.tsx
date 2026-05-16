@@ -12,13 +12,16 @@ export default async function CustomerDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const [{ data: customer }, { data: vehicles }] = await Promise.all([
+    supabase.from("customers").select("*").eq("id", id).single(),
+    supabase
+      .from("vehicles")
+      .select("*")
+      .eq("customer_id", id)
+      .order("created_at", { ascending: true }),
+  ]);
 
   if (!customer) notFound();
 
-  return <CustomerDetail initialCustomer={customer} />;
+  return <CustomerDetail initialCustomer={customer} initialVehicles={vehicles ?? []} />;
 }
