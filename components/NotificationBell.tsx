@@ -142,7 +142,7 @@ export function NotificationBell({ ownerId }: { ownerId: string }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 bottom-full mb-2 w-80 max-w-[90vw] bg-bg-card border border-border rounded-lg shadow-card-hover overflow-hidden animate-fade-in z-50">
+        <div className="fixed lg:absolute left-2 right-2 lg:left-0 lg:right-auto bottom-16 lg:bottom-full lg:mb-2 lg:w-80 bg-bg-card border border-border rounded-lg shadow-card-hover overflow-hidden animate-fade-in z-50">
           <div className="px-4 h-10 border-b border-border flex items-center justify-between">
             <div className="text-sm font-semibold">Notifiche</div>
             {unreadCount > 0 && (
