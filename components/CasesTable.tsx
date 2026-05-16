@@ -19,6 +19,7 @@ const AVATAR_COLORS = [
 import { caseFormSchema } from "@/lib/schemas";
 import { CasePanel } from "./case/CasePanel";
 import { Field } from "./case/Field";
+import { Combobox } from "./ui/Combobox";
 import { CustomerFormModal } from "./customer/CustomerFormModal";
 import { VehicleFormModal } from "./customer/VehicleFormModal";
 import type { Case, CaseStatus, Customer, Vehicle } from "@/types/database.types";
@@ -408,9 +409,6 @@ export function CasesTable({ initialCases }: { initialCases: CaseWithRelations[]
   );
 }
 
-const CREATE_CUSTOMER = "__create_customer__";
-const CREATE_VEHICLE = "__create_vehicle__";
-
 function NewCaseModal({
   onClose,
   onCreated,
@@ -455,10 +453,6 @@ function NewCaseModal({
   );
 
   function handleCustomerChange(value: string) {
-    if (value === CREATE_CUSTOMER) {
-      setShowCustomerModal(true);
-      return;
-    }
     setCustomerId(value);
     setVehicleId(""); // reset veicolo quando cambia cliente
     setErrors((e) => {
@@ -468,17 +462,28 @@ function NewCaseModal({
     });
   }
 
-  function handleVehicleChange(value: string) {
-    if (value === CREATE_VEHICLE) {
-      if (!customerId) {
-        toast.error("Seleziona prima un cliente");
-        return;
-      }
-      setShowVehicleModal(true);
-      return;
-    }
-    setVehicleId(value);
-  }
+  const customerOptions = useMemo(
+    () =>
+      customers.map((c) => ({
+        value: c.id,
+        label: c.full_name,
+        subLabel: [c.phone, c.email].filter(Boolean).join(" · ") || undefined,
+      })),
+    [customers]
+  );
+
+  const vehicleOptions = useMemo(
+    () =>
+      filteredVehicles.map((v) => ({
+        value: v.id,
+        label: [v.make, v.model].filter(Boolean).join(" ") || "Veicolo senza marca",
+        subLabel:
+          [v.plate, v.year ? String(v.year) : null, v.color]
+            .filter(Boolean)
+            .join(" · ") || undefined,
+      })),
+    [filteredVehicles]
+  );
 
   async function handleSave() {
     setErrors({});
@@ -550,28 +555,20 @@ function NewCaseModal({
         <div className="p-5 space-y-6">
           <div className="space-y-3">
             <Field label="Cliente *" htmlFor="nc-customer" error={errors["customer"]}>
-              <select
+              <Combobox
                 id="nc-customer"
+                ariaLabel="Seleziona cliente"
                 value={customerId}
-                onChange={(e) => handleCustomerChange(e.target.value)}
-                className="input-base"
+                onChange={handleCustomerChange}
+                options={customerOptions}
+                placeholder={loading ? "Caricamento..." : "Seleziona cliente"}
                 disabled={loading}
-              >
-                <option value="" disabled>
-                  {loading ? "Caricamento..." : "— Seleziona cliente —"}
-                </option>
-                <option value={CREATE_CUSTOMER}>+ Crea nuovo cliente</option>
-                {customers.length > 0 && (
-                  <optgroup label="Clienti esistenti">
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.full_name}
-                        {c.phone ? ` · ${c.phone}` : ""}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
+                emptyLabel="Nessun cliente. Usa '+ Crea nuovo cliente'."
+                createAction={{
+                  label: "Crea nuovo cliente",
+                  onClick: () => setShowCustomerModal(true),
+                }}
+              />
             </Field>
 
             <Field
@@ -581,30 +578,29 @@ function NewCaseModal({
                 !customerId
                   ? "Seleziona prima un cliente per vedere le sue vetture"
                   : filteredVehicles.length === 0
-                    ? "Il cliente non ha ancora vetture — usa 'Aggiungi vettura'"
+                    ? "Il cliente non ha ancora vetture — usa '+ Aggiungi vettura'"
                     : undefined
               }
             >
-              <select
+              <Combobox
                 id="nc-vehicle"
+                ariaLabel="Seleziona veicolo"
                 value={vehicleId}
-                onChange={(e) => handleVehicleChange(e.target.value)}
-                className="input-base"
+                onChange={setVehicleId}
+                options={vehicleOptions}
+                placeholder="Nessun veicolo"
                 disabled={!customerId || loading}
-              >
-                <option value="">— Nessun veicolo —</option>
-                <option value={CREATE_VEHICLE}>+ Aggiungi vettura al cliente</option>
-                {filteredVehicles.length > 0 && (
-                  <optgroup label="Vetture del cliente">
-                    {filteredVehicles.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {[v.make, v.model, v.plate].filter(Boolean).join(" · ") ||
-                          "Veicolo senza dati"}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
+                disabledHint="Seleziona prima un cliente"
+                emptyLabel="Il cliente non ha vetture"
+                createAction={
+                  customerId
+                    ? {
+                        label: "Aggiungi vettura al cliente",
+                        onClick: () => setShowVehicleModal(true),
+                      }
+                    : undefined
+                }
+              />
             </Field>
           </div>
 
