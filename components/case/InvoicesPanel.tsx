@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { FileText, Plus, ChevronRight, EyeOff } from "lucide-react";
+import {
+  FileText,
+  Plus,
+  ChevronRight,
+  ChevronDown,
+  EyeOff,
+  FileSpreadsheet,
+  Receipt,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import type { Invoice, InvoiceStatus } from "@/types/database.types";
@@ -35,8 +43,27 @@ interface Props {
 export function InvoicesPanel({ caseId, invoices }: Props) {
   const router = useRouter();
   const [creating, setCreating] = useState<"preventivo" | "fattura" | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onClick(e: MouseEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    window.addEventListener("mousedown", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   async function createNew(kind: "preventivo" | "fattura") {
+    setMenuOpen(false);
     setCreating(kind);
     try {
       const res = await fetch("/api/invoices", {
@@ -64,25 +91,59 @@ export function InvoicesPanel({ caseId, invoices }: Props) {
           Preventivi e fatture
           <span className="text-text-subtle">({invoices.length})</span>
         </div>
-        <div className="flex gap-2">
+        <div ref={menuRef} className="relative">
           <button
-            onClick={() => createNew("preventivo")}
-            disabled={creating !== null}
-            className="btn-secondary py-1.5"
             type="button"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            {creating === "preventivo" ? "..." : "Preventivo"}
-          </button>
-          <button
-            onClick={() => createNew("fattura")}
+            onClick={() => setMenuOpen((v) => !v)}
             disabled={creating !== null}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
             className="btn-primary py-1.5"
-            type="button"
           >
             <Plus className="w-3.5 h-3.5" />
-            {creating === "fattura" ? "..." : "Fattura"}
+            {creating === "preventivo"
+              ? "Creazione preventivo..."
+              : creating === "fattura"
+                ? "Creazione fattura..."
+                : "Preventivo / Fattura"}
+            <ChevronDown className="w-3.5 h-3.5 -mr-0.5" />
           </button>
+
+          {menuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-full mt-1 w-52 bg-bg-card border border-border rounded-md shadow-card-hover overflow-hidden z-30 animate-fade-in"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => createNew("preventivo")}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm hover:bg-bg-hover transition-colors"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-text-muted shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">Preventivo</div>
+                  <div className="text-[10px] text-text-subtle">
+                    Numerazione PREV-{new Date().getFullYear()}-…
+                  </div>
+                </div>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => createNew("fattura")}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm hover:bg-bg-hover transition-colors border-t border-border"
+              >
+                <Receipt className="w-4 h-4 text-accent shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">Fattura</div>
+                  <div className="text-[10px] text-text-subtle">
+                    Numerazione FATT-{new Date().getFullYear()}-…
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
