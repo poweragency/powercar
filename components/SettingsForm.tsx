@@ -60,12 +60,43 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
       return;
     }
     setSaving(true);
+    // 1) profiles legacy (workshop_name + altri campi) — backward compat
     const { data, error } = await supabase
       .from("profiles")
       .update(result.data)
       .eq("id", profile.id)
-      .select()
+      .select("*, workshop_id")
       .single();
+
+    // 2) workshops (fonte di verità per i dati workshop)
+    if (!error && data?.workshop_id) {
+      const wsPayload = {
+        name: result.data.workshop_name,
+        phone: result.data.phone,
+        vat_number: result.data.vat_number,
+        tax_code: result.data.tax_code,
+        address: result.data.address,
+        city: result.data.city,
+        postal_code: result.data.postal_code,
+        province: result.data.province,
+        iban: result.data.iban,
+        logo_url: result.data.logo_url,
+        fb_page_id: result.data.fb_page_id,
+        fb_page_access_token: result.data.fb_page_access_token,
+      };
+      const { error: wsError } = await supabase
+        .from("workshops")
+        .update(wsPayload)
+        .eq("id", data.workshop_id);
+      if (wsError) {
+        setSaving(false);
+        toast.error("Salvataggio workshop fallito", {
+          description: wsError.message,
+        });
+        return;
+      }
+    }
+
     setSaving(false);
     if (error || !data) {
       toast.error("Salvataggio fallito", { description: error?.message });
@@ -108,10 +139,16 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
             currentLogoUrl={form.logo_url}
             onChange={async (url) => {
               setField("logo_url", url);
-              await supabase
-                .from("profiles")
-                .update({ logo_url: url })
-                .eq("id", profile.id);
+              // profiles (legacy) + workshops (fonte di verità)
+              await Promise.all([
+                supabase.from("profiles").update({ logo_url: url }).eq("id", profile.id),
+                profile.workshop_id
+                  ? supabase
+                      .from("workshops")
+                      .update({ logo_url: url })
+                      .eq("id", profile.workshop_id)
+                  : Promise.resolve(),
+              ]);
               setProfile((p) => ({ ...p, logo_url: url }));
               toast.success(url ? "Logo aggiornato" : "Logo rimosso");
             }}
