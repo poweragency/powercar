@@ -17,17 +17,13 @@ import {
   Users,
   Car,
   CalendarClock,
-  Plus,
-  Settings,
-  LayoutDashboard,
   Loader2,
   CornerDownLeft,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import type { UserRole } from "@/types/database.types";
 
-type Group = "Pratiche" | "Lead" | "Clienti" | "Veicoli" | "Appuntamenti" | "Azioni";
+type Group = "Pratiche" | "Lead" | "Clienti" | "Veicoli" | "Appuntamenti";
 
 interface Item {
   id: string;
@@ -38,56 +34,6 @@ interface Item {
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
 }
 
-interface ActionDef extends Item {
-  ownerOnly?: boolean;
-}
-
-const STATIC_ACTIONS: ActionDef[] = [
-  {
-    id: "a-dashboard",
-    group: "Azioni",
-    label: "Vai a Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    id: "a-leads",
-    group: "Azioni",
-    label: "Vai a Lead",
-    href: "/leads",
-    icon: KanbanSquare,
-  },
-  {
-    id: "a-cases",
-    group: "Azioni",
-    label: "Vai a Pratiche",
-    href: "/cases",
-    icon: FolderKanban,
-  },
-  {
-    id: "a-calendar",
-    group: "Azioni",
-    label: "Vai a Calendario",
-    href: "/calendar",
-    icon: CalendarClock,
-  },
-  {
-    id: "a-settings",
-    group: "Azioni",
-    label: "Vai a Impostazioni",
-    href: "/settings",
-    icon: Settings,
-    ownerOnly: true,
-  },
-  {
-    id: "a-new-lead",
-    group: "Azioni",
-    label: "Nuovo lead",
-    href: "/leads?new=1",
-    icon: Plus,
-  },
-];
-
 interface CommandContext {
   open: boolean;
   setOpen: (v: boolean) => void;
@@ -95,18 +41,12 @@ interface CommandContext {
 
 const Ctx = createContext<CommandContext | null>(null);
 
-export function CommandPaletteProvider({
-  role = "owner",
-  children,
-}: {
-  role?: UserRole;
-  children: React.ReactNode;
-}) {
+export function CommandPaletteProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <Ctx.Provider value={{ open, setOpen }}>
       {children}
-      <CommandPalette open={open} onOpenChange={setOpen} role={role} />
+      <CommandPalette open={open} onOpenChange={setOpen} />
     </Ctx.Provider>
   );
 }
@@ -120,13 +60,10 @@ export function useCommandPalette() {
 function CommandPalette({
   open,
   onOpenChange,
-  role,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  role: UserRole;
 }) {
-  const isOwner = role === "owner";
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [query, setQuery] = useState("");
@@ -276,14 +213,7 @@ function CommandPalette({
     };
   }, [query, supabase]);
 
-  const items = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const visible = STATIC_ACTIONS.filter((a) => isOwner || !a.ownerOnly);
-    const actions = q
-      ? visible.filter((a) => a.label.toLowerCase().includes(q))
-      : visible;
-    return [...dynamic, ...actions];
-  }, [dynamic, query, isOwner]);
+  const items = dynamic;
 
   useEffect(() => {
     setActiveIdx(0);
@@ -300,14 +230,7 @@ function CommandPalette({
   }, [items]);
 
   const flatOrdered = useMemo(() => {
-    const order: Group[] = [
-      "Pratiche",
-      "Lead",
-      "Clienti",
-      "Veicoli",
-      "Appuntamenti",
-      "Azioni",
-    ];
+    const order: Group[] = ["Pratiche", "Lead", "Clienti", "Veicoli", "Appuntamenti"];
     const out: Item[] = [];
     for (const g of order) {
       for (const it of grouped.get(g) ?? []) out.push(it);
@@ -371,62 +294,55 @@ function CommandPalette({
                 : "Nessun risultato"}
             </div>
           ) : (
-            (
-              [
-                "Pratiche",
-                "Lead",
-                "Clienti",
-                "Veicoli",
-                "Appuntamenti",
-                "Azioni",
-              ] as Group[]
-            ).map((g) => {
-              const arr = grouped.get(g);
-              if (!arr || arr.length === 0) return null;
-              return (
-                <div key={g} className="py-1">
-                  <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-text-subtle font-medium">
-                    {g}
-                  </div>
-                  {arr.map((it) => {
-                    const idx = flatOrdered.indexOf(it);
-                    const active = idx === activeIdx;
-                    const Icon = it.icon;
-                    return (
-                      <button
-                        key={it.id}
-                        type="button"
-                        onMouseEnter={() => setActiveIdx(idx)}
-                        onClick={() => handleSelect(it)}
-                        className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2 text-left text-sm",
-                          active
-                            ? "bg-accent/10 text-accent"
-                            : "text-text hover:bg-bg-hover"
-                        )}
-                      >
-                        <Icon
+            (["Pratiche", "Lead", "Clienti", "Veicoli", "Appuntamenti"] as Group[]).map(
+              (g) => {
+                const arr = grouped.get(g);
+                if (!arr || arr.length === 0) return null;
+                return (
+                  <div key={g} className="py-1">
+                    <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-text-subtle font-medium">
+                      {g}
+                    </div>
+                    {arr.map((it) => {
+                      const idx = flatOrdered.indexOf(it);
+                      const active = idx === activeIdx;
+                      const Icon = it.icon;
+                      return (
+                        <button
+                          key={it.id}
+                          type="button"
+                          onMouseEnter={() => setActiveIdx(idx)}
+                          onClick={() => handleSelect(it)}
                           className={cn(
-                            "w-4 h-4 shrink-0",
-                            active ? "text-accent" : "text-text-muted"
+                            "w-full flex items-center gap-3 px-3 py-2 text-left text-sm",
+                            active
+                              ? "bg-accent/10 text-accent"
+                              : "text-text hover:bg-bg-hover"
                           )}
-                          strokeWidth={2}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate">{it.label}</div>
-                          {it.subLabel && (
-                            <div className="text-[11px] text-text-subtle truncate">
-                              {it.subLabel}
-                            </div>
-                          )}
-                        </div>
-                        {active && <CornerDownLeft className="w-3 h-3 text-accent" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })
+                        >
+                          <Icon
+                            className={cn(
+                              "w-4 h-4 shrink-0",
+                              active ? "text-accent" : "text-text-muted"
+                            )}
+                            strokeWidth={2}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate">{it.label}</div>
+                            {it.subLabel && (
+                              <div className="text-[11px] text-text-subtle truncate">
+                                {it.subLabel}
+                              </div>
+                            )}
+                          </div>
+                          {active && <CornerDownLeft className="w-3 h-3 text-accent" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              }
+            )
           )}
         </div>
 
