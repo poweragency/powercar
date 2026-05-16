@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Search,
   Users,
+  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
@@ -147,6 +148,20 @@ export function Sidebar({
           })}
 
           <div className="mt-auto pt-3 border-t border-border space-y-1">
+            {isOwner && (
+              <Link
+                href="/team"
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  pathname === "/team" || pathname.startsWith("/team/")
+                    ? "bg-accent/10 text-accent"
+                    : "text-text-muted hover:text-text hover:bg-bg-hover"
+                )}
+              >
+                <UserCog className="w-4 h-4" strokeWidth={2} />
+                Team
+              </Link>
+            )}
             {isOwner && (
               <Link
                 href="/settings"
