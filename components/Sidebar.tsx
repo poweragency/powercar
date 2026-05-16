@@ -14,6 +14,7 @@ import {
   X,
   ShieldCheck,
   Search,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
@@ -23,6 +24,7 @@ import { NotificationBell } from "./NotificationBell";
 const baseNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leads", label: "Lead", icon: KanbanSquare },
+  { href: "/customers", label: "Clienti", icon: Users },
   { href: "/cases", label: "Pratiche", icon: FolderKanban },
   { href: "/calendar", label: "Calendario", icon: Calendar },
   { href: "/settings", label: "Impostazioni", icon: Settings },
