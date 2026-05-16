@@ -32,13 +32,18 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
     fb_page_access_token: initialProfile.fb_page_access_token ?? null,
     logo_url: initialProfile.logo_url ?? null,
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof ProfileFormValues, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof ProfileFormValues, string>>>(
+    {}
+  );
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [showGuide, setShowGuide] = useState(false);
 
-  function setField<K extends keyof ProfileFormValues>(key: K, value: ProfileFormValues[K]) {
+  function setField<K extends keyof ProfileFormValues>(
+    key: K,
+    value: ProfileFormValues[K]
+  ) {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: undefined }));
   }
@@ -79,9 +84,7 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
   }
 
   const origin =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://TUO-DOMINIO.com";
+    typeof window !== "undefined" ? window.location.origin : "https://TUO-DOMINIO.com";
   const webhookUrl = `${origin}/api/webhooks/facebook`;
   const verifyToken = profile.fb_verify_token ?? "—";
 
@@ -206,7 +209,9 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
             <input
               type="text"
               value={form.province ?? ""}
-              onChange={(e) => setField("province", (e.target.value || "").toUpperCase() || null)}
+              onChange={(e) =>
+                setField("province", (e.target.value || "").toUpperCase() || null)
+              }
               className="input-base"
               maxLength={2}
             />
@@ -217,23 +222,11 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
           <input
             type="text"
             value={form.iban ?? ""}
-            onChange={(e) => setField("iban", (e.target.value || "").toUpperCase() || null)}
+            onChange={(e) =>
+              setField("iban", (e.target.value || "").toUpperCase() || null)
+            }
             className="input-base font-mono"
             placeholder="IT60 X054 2811 1010 0000 0123 456"
-          />
-        </Field>
-
-        <Field
-          label="Prefisso numerazione preventivi/fatture"
-          error={errors.invoice_prefix}
-          hint="Es. PREV o FATT — i numeri saranno tipo PREV-2026-001"
-        >
-          <input
-            type="text"
-            value={form.invoice_prefix ?? ""}
-            onChange={(e) => setField("invoice_prefix", e.target.value.toUpperCase() || null)}
-            className="input-base font-mono"
-            placeholder="PREV"
           />
         </Field>
       </div>
@@ -263,7 +256,9 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
           <input
             type="password"
             value={form.fb_page_access_token ?? ""}
-            onChange={(e) => setField("fb_page_access_token", e.target.value.trim() || null)}
+            onChange={(e) =>
+              setField("fb_page_access_token", e.target.value.trim() || null)
+            }
             className="input-base font-mono text-sm"
             placeholder="EAAxxxxx..."
           />
@@ -299,7 +294,12 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
               <span className="text-text-subtle">Modifiche non salvate</span>
             )}
           </span>
-          <button onClick={handleSave} disabled={saving} className="btn-primary" type="button">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-primary"
+            type="button"
+          >
             <Save className="w-4 h-4" />
             {saving ? "Salvataggio..." : "Salva"}
           </button>
@@ -357,9 +357,15 @@ function FacebookGuide({
       <GuideStep n={1} title="Trova l'ID della tua Pagina Facebook">
         <ol className="text-text-muted space-y-1 pl-5 list-decimal">
           <li>Apri la tua Pagina Facebook dal computer</li>
-          <li>Click su <strong>Informazioni</strong> (menu a sinistra)</li>
-          <li>Scorri in fondo: trovi un numero lungo chiamato <strong>ID Pagina</strong></li>
-          <li>Copia quel numero e incollalo qui sopra nel campo <em>ID Pagina Facebook</em></li>
+          <li>
+            Click su <strong>Informazioni</strong> (menu a sinistra)
+          </li>
+          <li>
+            Scorri in fondo: trovi un numero lungo chiamato <strong>ID Pagina</strong>
+          </li>
+          <li>
+            Copia quel numero e incollalo qui sopra nel campo <em>ID Pagina Facebook</em>
+          </li>
         </ol>
       </GuideStep>
 
@@ -376,17 +382,26 @@ function FacebookGuide({
               Facebook Graph API Explorer
             </a>
           </li>
-          <li>In alto a destra, click su <strong>Generate Access Token</strong></li>
+          <li>
+            In alto a destra, click su <strong>Generate Access Token</strong>
+          </li>
           <li>Seleziona la tua Pagina dall&apos;elenco</li>
           <li>
             Nei permessi richiesti spunta queste 2 voci:
             <div className="bg-bg-card border border-border rounded p-2 mt-1.5 font-mono text-xs">
-              leads_retrieval<br />pages_manage_metadata
+              leads_retrieval
+              <br />
+              pages_manage_metadata
             </div>
           </li>
-          <li>Click <strong>Generate Access Token</strong> → autorizza nella finestra che si apre</li>
+          <li>
+            Click <strong>Generate Access Token</strong> → autorizza nella finestra che si
+            apre
+          </li>
           <li>Copia il token lungo che appare nel campo grande in alto</li>
-          <li>Incollalo qui sopra nel campo <em>Token di accesso Pagina</em></li>
+          <li>
+            Incollalo qui sopra nel campo <em>Token di accesso Pagina</em>
+          </li>
         </ol>
       </GuideStep>
 
@@ -407,12 +422,18 @@ function FacebookGuide({
               className="text-accent hover:underline"
             >
               Meta for Developers
-            </a>
-            {" "}e apri la tua app
+            </a>{" "}
+            e apri la tua app
           </li>
-          <li>Menu sinistra: <strong>Webhooks</strong></li>
-          <li>Seleziona <strong>Page</strong> nel dropdown</li>
-          <li>Click <strong>Subscribe to this object</strong></li>
+          <li>
+            Menu sinistra: <strong>Webhooks</strong>
+          </li>
+          <li>
+            Seleziona <strong>Page</strong> nel dropdown
+          </li>
+          <li>
+            Click <strong>Subscribe to this object</strong>
+          </li>
           <li>
             Incolla i 2 valori qui sotto:
             <div className="mt-3 space-y-3">
@@ -431,7 +452,9 @@ function FacebookGuide({
               />
             </div>
           </li>
-          <li>Click <strong>Verify and Save</strong></li>
+          <li>
+            Click <strong>Verify and Save</strong>
+          </li>
           <li>
             Nella lista <strong>leadgen</strong> click <strong>Subscribe</strong>
           </li>
@@ -449,14 +472,14 @@ function FacebookGuide({
           >
             Lead Ads Testing Tool
           </a>{" "}
-          di Meta per inviare un lead di prova. Entro pochi secondi compare nella
-          tua sezione <strong>Lead</strong>, colonna <strong>Nuovo</strong>.
+          di Meta per inviare un lead di prova. Entro pochi secondi compare nella tua
+          sezione <strong>Lead</strong>, colonna <strong>Nuovo</strong>.
         </p>
       </GuideStep>
 
       <div className="bg-accent/5 border border-accent/20 rounded p-3 text-xs text-text-muted">
-        <strong className="text-accent">Hai dubbi?</strong> Contatta il supporto
-        tecnico o passa questi 5 passi al tuo consulente social.
+        <strong className="text-accent">Hai dubbi?</strong> Contatta il supporto tecnico o
+        passa questi 5 passi al tuo consulente social.
       </div>
     </div>
   );
@@ -509,11 +532,7 @@ function CopyField({
           readOnly
           className={cn("input-base flex-1 text-xs", mono && "font-mono")}
         />
-        <button
-          onClick={onCopy}
-          className="btn-secondary shrink-0 py-2"
-          type="button"
-        >
+        <button onClick={onCopy} className="btn-secondary shrink-0 py-2" type="button">
           {copied ? (
             <Check className="w-3.5 h-3.5 text-emerald-400" />
           ) : (
