@@ -4,7 +4,7 @@ import {
   CASE_STATUS_LABELS,
   LEAD_STATUS_LABELS,
 } from "@/lib/constants";
-import { formatCurrency, formatDateTime, initials } from "@/lib/utils";
+import { formatCurrency, formatDateTime, initials, todayBoundsInRome } from "@/lib/utils";
 import {
   KanbanSquare,
   Users,
@@ -71,13 +71,16 @@ export default async function DashboardPage() {
       )
       .order("created_at", { ascending: false })
       .limit(5),
-    supabase
-      .from("appointments")
-      .select("id, title, starts_at, kind")
-      .gte("starts_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
-      .lte("starts_at", new Date(new Date().setHours(23, 59, 59, 999)).toISOString())
-      .order("starts_at", { ascending: true })
-      .limit(5),
+    (() => {
+      const { start, end } = todayBoundsInRome();
+      return supabase
+        .from("appointments")
+        .select("id, title, starts_at, kind")
+        .gte("starts_at", start)
+        .lte("starts_at", end)
+        .order("starts_at", { ascending: true })
+        .limit(5);
+    })(),
   ]);
 
   const stats = (statsJson ?? {}) as unknown as DashboardStats;
