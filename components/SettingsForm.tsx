@@ -282,22 +282,38 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
         <Field label="ID Pagina Facebook" error={errors.fb_page_id}>
           <input
             type="text"
+            name="fb_page_id"
             value={form.fb_page_id ?? ""}
             onChange={(e) => setField("fb_page_id", e.target.value.trim() || null)}
             className="input-base font-mono text-sm"
             placeholder="123456789012345"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
           />
         </Field>
 
         <Field label="Token di accesso Pagina" error={errors.fb_page_access_token}>
           <input
-            type="password"
+            type="text"
+            name="fb_page_access_token"
             value={form.fb_page_access_token ?? ""}
             onChange={(e) =>
               setField("fb_page_access_token", e.target.value.trim() || null)
             }
             className="input-base font-mono text-sm"
             placeholder="EAAxxxxx..."
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
           />
         </Field>
 

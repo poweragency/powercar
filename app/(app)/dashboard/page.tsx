@@ -500,15 +500,10 @@ function OnboardingStep({
 }) {
   const inner = (
     <>
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-2 mb-1 pr-8">
         <span className="text-xs uppercase tracking-wide text-text-subtle">
           {number}. {label}
         </span>
-        {done && (
-          <span className="ml-auto inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-status-success font-semibold">
-            Fatto
-          </span>
-        )}
       </div>
       <div className="text-sm font-medium">{title}</div>
       <div className="text-xs text-text-muted mt-1">{description}</div>
@@ -519,12 +514,12 @@ function OnboardingStep({
     return (
       <div
         aria-label={`${title} (completato)`}
-        className="card p-4 border-status-success/30 bg-status-success/5 opacity-60 cursor-default relative overflow-hidden"
+        className="card p-4 border-status-success/40 bg-status-success/5 cursor-default relative overflow-hidden"
       >
-        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-status-success/20 text-status-success flex items-center justify-center">
+        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-status-success/20 text-status-success flex items-center justify-center">
           <CheckCircle2 className="w-4 h-4" strokeWidth={2.5} />
         </div>
-        <div className="blur-[1px] saturate-50">{inner}</div>
+        <div className="text-text-muted">{inner}</div>
       </div>
     );
   }
