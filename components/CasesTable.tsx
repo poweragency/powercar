@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Search, Phone, Mail } from "lucide-react";
+import { Plus, Search, Phone, Mail, SlidersHorizontal, X as XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -51,10 +51,58 @@ export function CasesTable({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CaseStatus | "all">("all");
   const [showNew, setShowNew] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [insuranceFilter, setInsuranceFilter] = useState("");
+  const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "price-desc" | "price-asc">(
+    "date-desc"
+  );
+
+  const insuranceOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of cases) {
+      if (c.insurance_company) set.add(c.insurance_company);
+    }
+    return Array.from(set).sort();
+  }, [cases]);
+
+  const activeFiltersCount =
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0) +
+    (priceMin ? 1 : 0) +
+    (priceMax ? 1 : 0) +
+    (insuranceFilter ? 1 : 0);
+
+  function resetFilters() {
+    setDateFrom("");
+    setDateTo("");
+    setPriceMin("");
+    setPriceMax("");
+    setInsuranceFilter("");
+    setSortBy("date-desc");
+  }
 
   const filtered = useMemo(() => {
-    return cases.filter((c) => {
+    const min = priceMin === "" ? null : Number(priceMin);
+    const max = priceMax === "" ? null : Number(priceMax);
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo ? new Date(dateTo + "T23:59:59").getTime() : null;
+
+    const list = cases.filter((c) => {
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
+      if (insuranceFilter && c.insurance_company !== insuranceFilter) return false;
+
+      const price = Number(c.price ?? 0);
+      if (min !== null && price < min) return false;
+      if (max !== null && price > max) return false;
+
+      const created = new Date(c.created_at).getTime();
+      if (from !== null && created < from) return false;
+      if (to !== null && created > to) return false;
+
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return (
@@ -67,7 +115,27 @@ export function CasesTable({
         c.insurance_company?.toLowerCase().includes(q)
       );
     });
-  }, [cases, search, statusFilter]);
+
+    list.sort((a, b) => {
+      if (sortBy === "date-desc")
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (sortBy === "date-asc")
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (sortBy === "price-desc") return Number(b.price ?? 0) - Number(a.price ?? 0);
+      return Number(a.price ?? 0) - Number(b.price ?? 0);
+    });
+    return list;
+  }, [
+    cases,
+    search,
+    statusFilter,
+    dateFrom,
+    dateTo,
+    priceMin,
+    priceMax,
+    insuranceFilter,
+    sortBy,
+  ]);
 
   return (
     <div className="h-full flex flex-col">
@@ -105,12 +173,123 @@ export function CasesTable({
               className="input-base pl-8 w-72"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            className={cn(
+              "btn-secondary relative",
+              showFilters && "border-accent text-accent"
+            )}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filtri
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center text-[10px] font-semibold min-w-[18px] h-[18px] rounded-full bg-accent text-accent-contrast px-1">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
           <button onClick={() => setShowNew(true)} className="btn-primary" type="button">
             <Plus className="w-4 h-4" strokeWidth={2.5} />
             Nuova pratica
           </button>
         </div>
       </div>
+
+      {showFilters && (
+        <div className="px-8 py-3 border-b border-border bg-bg-card/50 flex items-end gap-3 flex-wrap animate-slide-up">
+          <div>
+            <label className="text-[10px] uppercase tracking-wide text-text-subtle font-medium block mb-1">
+              Aperta dal
+            </label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="input-base w-40"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wide text-text-subtle font-medium block mb-1">
+              al
+            </label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="input-base w-40"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wide text-text-subtle font-medium block mb-1">
+              Prezzo min €
+            </label>
+            <input
+              type="number"
+              value={priceMin}
+              onChange={(e) => setPriceMin(e.target.value)}
+              placeholder="0"
+              className="input-base w-28"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wide text-text-subtle font-medium block mb-1">
+              Prezzo max €
+            </label>
+            <input
+              type="number"
+              value={priceMax}
+              onChange={(e) => setPriceMax(e.target.value)}
+              placeholder="∞"
+              className="input-base w-28"
+            />
+          </div>
+          {insuranceOptions.length > 0 && (
+            <div>
+              <label className="text-[10px] uppercase tracking-wide text-text-subtle font-medium block mb-1">
+                Assicurazione
+              </label>
+              <select
+                value={insuranceFilter}
+                onChange={(e) => setInsuranceFilter(e.target.value)}
+                className="input-base w-48"
+              >
+                <option value="">Tutte</option>
+                {insuranceOptions.map((i) => (
+                  <option key={i} value={i}>
+                    {i}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div>
+            <label className="text-[10px] uppercase tracking-wide text-text-subtle font-medium block mb-1">
+              Ordina per
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="input-base w-48"
+            >
+              <option value="date-desc">Più recenti</option>
+              <option value="date-asc">Più vecchie</option>
+              <option value="price-desc">Prezzo (alto → basso)</option>
+              <option value="price-asc">Prezzo (basso → alto)</option>
+            </select>
+          </div>
+          {activeFiltersCount > 0 && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="btn-ghost text-xs"
+            >
+              <XIcon className="w-3.5 h-3.5" />
+              Azzera filtri
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto p-8">
         <div className="card overflow-hidden">

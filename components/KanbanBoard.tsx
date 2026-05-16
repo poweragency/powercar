@@ -21,7 +21,7 @@ import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, LEAD_STATUS_ORDER } from "@/lib
 import type { Lead, LeadStatus } from "@/types/database.types";
 import { LeadCard } from "./LeadCard";
 import { LeadModal } from "./LeadModal";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, X as XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -43,7 +43,28 @@ export function KanbanBoard({ initialLeads }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [modalLead, setModalLead] = useState<Lead | "new" | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<string>("");
   const supabase = useMemo(() => createClient(), []);
+
+  const sourceOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const l of leads) {
+      if (l.source) set.add(l.source);
+    }
+    return Array.from(set).sort();
+  }, [leads]);
+
+  const activeFiltersCount =
+    (dateFrom ? 1 : 0) + (dateTo ? 1 : 0) + (sourceFilter ? 1 : 0);
+
+  function resetFilters() {
+    setDateFrom("");
+    setDateTo("");
+    setSourceFilter("");
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -86,15 +107,22 @@ export function KanbanBoard({ initialLeads }: Props) {
   }, [supabase]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return leads;
-    const q = search.toLowerCase();
-    return leads.filter(
-      (l) =>
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo ? new Date(dateTo + "T23:59:59").getTime() : null;
+    const q = search.trim().toLowerCase();
+    return leads.filter((l) => {
+      if (sourceFilter && l.source !== sourceFilter) return false;
+      const created = new Date(l.created_at).getTime();
+      if (from !== null && created < from) return false;
+      if (to !== null && created > to) return false;
+      if (!q) return true;
+      return (
         l.full_name.toLowerCase().includes(q) ||
         l.phone?.toLowerCase().includes(q) ||
         l.email?.toLowerCase().includes(q)
-    );
-  }, [leads, search]);
+      );
+    });
+  }, [leads, search, dateFrom, dateTo, sourceFilter]);
 
   const grouped = useMemo(() => {
     const map: Record<LeadStatus, Lead[]> = {
@@ -176,12 +204,84 @@ export function KanbanBoard({ initialLeads }: Props) {
               className="input-base pl-8 w-56"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            className={cn(
+              "btn-secondary relative",
+              showFilters && "border-accent text-accent"
+            )}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filtri
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center text-[10px] font-semibold min-w-[18px] h-[18px] rounded-full bg-accent text-accent-contrast px-1">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
           <button onClick={() => setModalLead("new")} className="btn-primary" type="button">
             <Plus className="w-4 h-4" strokeWidth={2.5} />
             Nuovo lead
           </button>
         </div>
       </div>
+
+      {showFilters && (
+        <div className="px-8 py-3 border-b border-border bg-bg-card/50 flex items-end gap-3 flex-wrap animate-slide-up">
+          <div>
+            <label className="text-[10px] uppercase tracking-wide text-text-subtle font-medium block mb-1">
+              Arrivato dal
+            </label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="input-base w-40"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wide text-text-subtle font-medium block mb-1">
+              al
+            </label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="input-base w-40"
+            />
+          </div>
+          {sourceOptions.length > 0 && (
+            <div>
+              <label className="text-[10px] uppercase tracking-wide text-text-subtle font-medium block mb-1">
+                Origine
+              </label>
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="input-base w-40"
+              >
+                <option value="">Tutte</option>
+                {sourceOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {activeFiltersCount > 0 && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="btn-ghost text-xs"
+            >
+              <XIcon className="w-3.5 h-3.5" />
+              Azzera filtri
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <DndContext
