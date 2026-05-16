@@ -256,6 +256,7 @@ export function InvoiceEditor({
         phone: profile.phone,
         email: userEmail,
         iban: profile.iban,
+        logoUrl: profile.logo_url ?? null,
       }}
       customer={{
         fullName: customer.full_name,

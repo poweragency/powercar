@@ -16,7 +16,7 @@ export default async function AppLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("workshop_name, full_name")
+    .select("workshop_name, full_name, logo_url")
     .eq("id", user.id)
     .single();
 
@@ -26,6 +26,7 @@ export default async function AppLayout({
     <AppShell
       userEmail={user.email ?? ""}
       workshopName={profile?.workshop_name ?? "La mia carrozzeria"}
+      logoUrl={profile?.logo_url ?? null}
       isAdmin={isAdmin}
     >
       {children}

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { profileFormSchema, type ProfileFormValues } from "@/lib/schemas";
 import type { Profile } from "@/types/database.types";
 import { cn } from "@/lib/utils";
+import { LogoUploader } from "./LogoUploader";
 
 interface Props {
   initialProfile: Profile;
@@ -29,6 +30,7 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
     invoice_prefix: initialProfile.invoice_prefix ?? "PREV",
     fb_page_id: initialProfile.fb_page_id ?? null,
     fb_page_access_token: initialProfile.fb_page_access_token ?? null,
+    logo_url: initialProfile.logo_url ?? null,
   });
   const [errors, setErrors] = useState<Partial<Record<keyof ProfileFormValues, string>>>({});
   const [saving, setSaving] = useState(false);
@@ -96,6 +98,22 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-text-subtle">
           Account
         </h2>
+
+        <Field label="Logo officina">
+          <LogoUploader
+            userId={profile.id}
+            currentLogoUrl={form.logo_url}
+            onChange={async (url) => {
+              setField("logo_url", url);
+              await supabase
+                .from("profiles")
+                .update({ logo_url: url })
+                .eq("id", profile.id);
+              setProfile((p) => ({ ...p, logo_url: url }));
+              toast.success(url ? "Logo aggiornato" : "Logo rimosso");
+            }}
+          />
+        </Field>
 
         <Field label="Nome carrozzeria *" error={errors.workshop_name}>
           <input

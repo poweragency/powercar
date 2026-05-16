@@ -206,6 +206,7 @@ export const profileFormSchema = z.object({
     .nullable(),
   fb_page_id: trimmedOrNull.nullable(),
   fb_page_access_token: trimmedOrNull.nullable(),
+  logo_url: trimmedOrNull.nullable(),
 });
 
 export type ProfileFormValues = z.infer<typeof profileFormSchema>;

@@ -28,12 +28,20 @@ const baseNav = [
 interface Props {
   userEmail: string;
   workshopName: string;
+  logoUrl: string | null;
   isAdmin: boolean;
   open: boolean;
   onClose: () => void;
 }
 
-export function Sidebar({ userEmail, workshopName, isAdmin, open, onClose }: Props) {
+export function Sidebar({
+  userEmail,
+  workshopName,
+  logoUrl,
+  isAdmin,
+  open,
+  onClose,
+}: Props) {
   const pathname = usePathname();
 
   useEffect(() => {
@@ -69,8 +77,17 @@ export function Sidebar({ userEmail, workshopName, isAdmin, open, onClose }: Pro
         )}
       >
         <div className="px-5 h-16 flex items-center gap-3 border-b border-border">
-          <div className="w-8 h-8 rounded-md bg-accent flex items-center justify-center shrink-0">
-            <Wrench className="w-4 h-4 text-white" strokeWidth={2.5} />
+          <div className="w-8 h-8 rounded-md bg-accent flex items-center justify-center shrink-0 overflow-hidden">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Wrench className="w-4 h-4 text-accent-contrast" strokeWidth={2.5} />
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <div

@@ -450,6 +450,7 @@ export type Database = {
           iban: string | null
           id: string
           invoice_prefix: string | null
+          logo_url: string | null
           phone: string | null
           postal_code: string | null
           province: string | null
@@ -470,6 +471,7 @@ export type Database = {
           iban?: string | null
           id: string
           invoice_prefix?: string | null
+          logo_url?: string | null
           phone?: string | null
           postal_code?: string | null
           province?: string | null
@@ -490,6 +492,7 @@ export type Database = {
           iban?: string | null
           id?: string
           invoice_prefix?: string | null
+          logo_url?: string | null
           phone?: string | null
           postal_code?: string | null
           province?: string | null

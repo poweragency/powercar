@@ -1,6 +1,6 @@
 "use client";
 
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 
 const styles = StyleSheet.create({
   page: {
@@ -18,8 +18,18 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ddd",
   },
   brand: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "flex-start",
+  },
+  brandText: {
     flexDirection: "column",
     gap: 2,
+  },
+  brandLogo: {
+    width: 48,
+    height: 48,
+    objectFit: "contain",
   },
   brandName: { fontSize: 14, fontFamily: "Helvetica-Bold" },
   meta: {
@@ -126,6 +136,7 @@ interface InvoicePDFProps {
     phone: string | null;
     email: string;
     iban: string | null;
+    logoUrl: string | null;
   };
   customer: {
     fullName: string;
@@ -174,25 +185,33 @@ export function InvoicePDF(props: InvoicePDFProps) {
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.brand}>
-            <Text style={styles.brandName}>{workshop.name}</Text>
-            {workshop.address && <Text style={styles.small}>{workshop.address}</Text>}
-            {(workshop.postalCode || workshop.city || workshop.province) && (
+            {workshop.logoUrl && (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image src={workshop.logoUrl} style={styles.brandLogo} />
+            )}
+            <View style={styles.brandText}>
+              <Text style={styles.brandName}>{workshop.name}</Text>
+              {workshop.address && (
+                <Text style={styles.small}>{workshop.address}</Text>
+              )}
+              {(workshop.postalCode || workshop.city || workshop.province) && (
+                <Text style={styles.small}>
+                  {[workshop.postalCode, workshop.city, workshop.province]
+                    .filter(Boolean)
+                    .join(" ")}
+                </Text>
+              )}
+              {workshop.vatNumber && (
+                <Text style={styles.small}>P.IVA {workshop.vatNumber}</Text>
+              )}
+              {workshop.taxCode && (
+                <Text style={styles.small}>CF {workshop.taxCode}</Text>
+              )}
               <Text style={styles.small}>
-                {[workshop.postalCode, workshop.city, workshop.province]
-                  .filter(Boolean)
-                  .join(" ")}
+                {workshop.email}
+                {workshop.phone ? ` · ${workshop.phone}` : ""}
               </Text>
-            )}
-            {workshop.vatNumber && (
-              <Text style={styles.small}>P.IVA {workshop.vatNumber}</Text>
-            )}
-            {workshop.taxCode && (
-              <Text style={styles.small}>CF {workshop.taxCode}</Text>
-            )}
-            <Text style={styles.small}>
-              {workshop.email}
-              {workshop.phone ? ` · ${workshop.phone}` : ""}
-            </Text>
+            </View>
           </View>
           <View style={styles.meta}>
             <Text style={styles.metaTitle}>{title}</Text>
