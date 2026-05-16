@@ -11,14 +11,20 @@ import { Breadcrumb } from "./ui/Breadcrumb";
 import { formatDateTime, initials } from "@/lib/utils";
 import { Field, Section } from "./case/Field";
 import { VehiclesPanel } from "./customer/VehiclesPanel";
+import { CustomerCasesPanel, type CustomerCase } from "./customer/CustomerCasesPanel";
 import type { Customer, Vehicle } from "@/types/database.types";
 
 interface Props {
   initialCustomer: Customer;
   initialVehicles: Vehicle[];
+  initialCases: CustomerCase[];
 }
 
-export function CustomerDetail({ initialCustomer, initialVehicles }: Props) {
+export function CustomerDetail({
+  initialCustomer,
+  initialVehicles,
+  initialCases,
+}: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const confirm = useConfirm();
@@ -158,6 +164,10 @@ export function CustomerDetail({ initialCustomer, initialVehicles }: Props) {
 
         <div className="border-t border-border pt-6">
           <VehiclesPanel customerId={customer.id} initialVehicles={initialVehicles} />
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <CustomerCasesPanel cases={initialCases} />
         </div>
       </div>
 
