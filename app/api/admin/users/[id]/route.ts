@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { requireAdmin, adminClient, logAdminAction } from "@/lib/admin";
+
+const patchBodySchema = z.object({
+  action: z.enum(["disable", "enable"]),
+});
 
 interface Ctx {
   params: Promise<{ id: string }>;
@@ -42,12 +47,15 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { id } = await ctx.params;
 
-  const body = (await req.json().catch(() => null)) as
-    | { action?: "disable" | "enable" }
-    | null;
-  if (!body?.action) {
-    return NextResponse.json({ error: "Missing action" }, { status: 400 });
+  const json = await req.json().catch(() => null);
+  const parsed = patchBodySchema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "action richiesta (disable|enable)" },
+      { status: 400 }
+    );
   }
+  const body = parsed.data;
 
   if (id === auth.userId && body.action === "disable") {
     return NextResponse.json(

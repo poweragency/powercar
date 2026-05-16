@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { rateLimit } from "@/lib/rate-limit";
+
+const bodySchema = z.object({
+  case_id: z.string().uuid(),
+  kind: z.enum(["preventivo", "fattura"]).default("preventivo"),
+});
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -16,19 +22,20 @@ export async function POST(req: NextRequest) {
       headers: { "Retry-After": String(rl.retryAfterSec) },
     });
   }
-  // ip fallback per utenti anonimi (non dovrebbe accadere qui)
-  void getClientIp(req);
 
-  const body = (await req.json().catch(() => null)) as
-    | { case_id?: string; kind?: "preventivo" | "fattura" }
-    | null;
-  if (!body?.case_id) return new NextResponse("Missing case_id", { status: 400 });
-
-  const kind = body.kind === "fattura" ? "fattura" : "preventivo";
+  const json = await req.json().catch(() => null);
+  const parsed = bodySchema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Body non valido" },
+      { status: 400 }
+    );
+  }
+  const { case_id, kind } = parsed.data;
 
   // La RPC verifica owner e numera in modo atomico (advisory lock)
   const { data, error } = await supabase.rpc("create_invoice_draft", {
-    p_case_id: body.case_id,
+    p_case_id: case_id,
     p_kind: kind,
   });
 

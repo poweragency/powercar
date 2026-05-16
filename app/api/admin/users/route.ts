@@ -1,5 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { requireAdmin, adminClient, logAdminAction } from "@/lib/admin";
+
+const bodySchema = z.object({
+  email: z.string().email("Email non valida"),
+  password: z.string().min(6, "Password troppo corta (min. 6 caratteri)"),
+  workshop_name: z.string().trim().min(1, "Nome carrozzeria obbligatorio").max(200),
+});
 
 /**
  * POST /api/admin/users
@@ -10,21 +17,15 @@ export async function POST(req: NextRequest) {
   const auth = await requireAdmin();
   if (auth instanceof NextResponse) return auth;
 
-  const body = (await req.json().catch(() => null)) as
-    | { email?: string; password?: string; workshop_name?: string }
-    | null;
-  if (!body?.email || !body?.password || !body?.workshop_name) {
+  const json = await req.json().catch(() => null);
+  const parsed = bodySchema.safeParse(json);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Missing email/password/workshop_name" },
+      { error: parsed.error.issues[0]?.message ?? "Body non valido" },
       { status: 400 }
     );
   }
-  if (body.password.length < 6) {
-    return NextResponse.json(
-      { error: "Password troppo corta (min. 6 caratteri)" },
-      { status: 400 }
-    );
-  }
+  const body = parsed.data;
 
   const admin = adminClient();
   const { data, error } = await admin.auth.admin.createUser({

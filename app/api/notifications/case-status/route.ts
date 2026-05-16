@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { CASE_STATUS_LABELS } from "@/lib/constants";
 import type { CaseStatus } from "@/types/database.types";
 import { rateLimit } from "@/lib/rate-limit";
+
+const bodySchema = z.object({ case_id: z.string().uuid() });
 
 const STATUS_MESSAGES: Record<CaseStatus, string> = {
   preventivo:
@@ -33,15 +36,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body = (await req.json().catch(() => null)) as { case_id?: string } | null;
-  if (!body?.case_id) return new NextResponse("Missing case_id", { status: 400 });
+  const json = await req.json().catch(() => null);
+  const parsed = bodySchema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Body non valido" },
+      { status: 400 }
+    );
+  }
 
   const { data: caseRow } = await supabase
     .from("cases")
     .select(
       "id, status, customers(full_name, email), vehicles(make, model, plate)"
     )
-    .eq("id", body.case_id)
+    .eq("id", parsed.data.case_id)
     .single();
 
   if (!caseRow) return new NextResponse("Case not found", { status: 404 });
