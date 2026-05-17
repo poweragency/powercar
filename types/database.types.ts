@@ -389,6 +389,7 @@ export type Database = {
           source: string | null;
           status: Database["public"]["Enums"]["lead_status"];
           updated_at: string;
+          workshop_id: string;
         };
         Insert: {
           created_at?: string;
@@ -405,6 +406,11 @@ export type Database = {
           source?: string | null;
           status?: Database["public"]["Enums"]["lead_status"];
           updated_at?: string;
+          // workshop_id e' NOT NULL ma il trigger set_owner_id lo
+          // popola automaticamente per gli utenti autenticati. Va
+          // passato esplicitamente solo dai webhook in service-role
+          // dove auth.uid() non è disponibile.
+          workshop_id?: string;
         };
         Update: {
           created_at?: string;
@@ -421,6 +427,7 @@ export type Database = {
           source?: string | null;
           status?: Database["public"]["Enums"]["lead_status"];
           updated_at?: string;
+          workshop_id?: string;
         };
         Relationships: [];
       };

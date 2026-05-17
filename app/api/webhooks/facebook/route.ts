@@ -4,15 +4,22 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 /**
- * Facebook Lead Ads webhook (multi-tenant).
+ * Facebook Lead Ads webhook (multi-tenant, workshop-based).
  *
  * GET  → verifica del webhook (hub.challenge).
- *        Il `hub.verify_token` viene matchato contro tutti i `profiles.fb_verify_token`:
+ *        Il `hub.verify_token` viene matchato contro `workshops.fb_verify_token`:
  *        se trova match → 200 con challenge, altrimenti 403.
  *
- * POST → riceve notifica leadgen → trova il profile via `page_id`
- *        → usa il page_access_token salvato in profile per leggere il lead dalla Graph API
- *        → inserisce il lead con owner_id = profile.id
+ * POST → riceve notifica leadgen → trova il workshop via `page_id`
+ *        → usa il page_access_token del workshop per leggere il lead dalla Graph API
+ *        → inserisce il lead con workshop_id = workshop.id.
+ *
+ * Il lookup è su `workshops`, non più su `profiles` legacy: i campi FB
+ * sono source-of-truth sul workshop (SettingsForm dual-writes), e qui
+ * usare workshop direttamente garantisce che il `workshop_id` venga
+ * popolato correttamente (il trigger `set_owner_id` non puo' popolarlo
+ * automaticamente perche' siamo in service-role, quindi auth.uid()
+ * è NULL e current_workshop_id() torna NULL).
  *
  * Env vars:
  * - FB_APP_SECRET            (App Secret Meta - per verifica firma X-Hub-Signature-256)
@@ -29,15 +36,14 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  // Cerca un profile con questo verify_token
   const supabase = createAdminClient();
-  const { data: profile } = await supabase
-    .from("profiles")
+  const { data: workshop } = await supabase
+    .from("workshops")
     .select("id")
     .eq("fb_verify_token", token)
     .maybeSingle();
 
-  if (!profile) {
+  if (!workshop) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
@@ -60,8 +66,7 @@ export async function POST(req: NextRequest) {
   if (appSecret) {
     const signature = req.headers.get("x-hub-signature-256") ?? "";
     const expected =
-      "sha256=" +
-      crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex");
+      "sha256=" + crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex");
     if (
       !signature ||
       signature.length !== expected.length ||
@@ -88,15 +93,15 @@ export async function POST(req: NextRequest) {
   for (const entry of body.entry ?? []) {
     const pageId = entry.id;
 
-    // Trova il profile che ha registrato questa Pagina FB
-    const { data: profile } = await supabase
-      .from("profiles")
+    // Trova il workshop che ha registrato questa Pagina FB
+    const { data: workshop } = await supabase
+      .from("workshops")
       .select("id, fb_page_access_token")
       .eq("fb_page_id", pageId)
       .maybeSingle();
 
-    if (!profile) {
-      console.warn(`[fb-webhook] No profile linked to page_id ${pageId}`);
+    if (!workshop) {
+      console.warn(`[fb-webhook] No workshop linked to page_id ${pageId}`);
       continue;
     }
 
@@ -118,9 +123,9 @@ export async function POST(req: NextRequest) {
       let message: string | null = null;
       let rawPayload: unknown = change.value;
 
-      if (profile.fb_page_access_token) {
+      if (workshop.fb_page_access_token) {
         try {
-          const url = `https://graph.facebook.com/v18.0/${leadgen_id}?access_token=${profile.fb_page_access_token}`;
+          const url = `https://graph.facebook.com/v18.0/${leadgen_id}?access_token=${workshop.fb_page_access_token}`;
           const res = await fetch(url);
           if (res.ok) {
             const json: FbLeadResponse = await res.json();
@@ -135,11 +140,7 @@ export async function POST(req: NextRequest) {
               else if (name.includes("message") || name.includes("note")) message = v;
             }
           } else {
-            console.error(
-              "[fb-webhook] Graph API error:",
-              res.status,
-              await res.text()
-            );
+            console.error("[fb-webhook] Graph API error:", res.status, await res.text());
           }
         } catch (err) {
           console.error("[fb-webhook] Fetch lead failed:", err);
@@ -147,7 +148,7 @@ export async function POST(req: NextRequest) {
       }
 
       const { error } = await supabase.from("leads").insert({
-        owner_id: profile.id,
+        workshop_id: workshop.id,
         full_name: fullName,
         phone,
         email,
@@ -167,6 +168,9 @@ export async function POST(req: NextRequest) {
 }
 
 // ============================================================
+// Types
+// ============================================================
+
 interface FbWebhookBody {
   object: string;
   entry?: Array<{
