@@ -3,17 +3,35 @@
 import { useState } from "react";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
+import type { CaseStatus } from "@/types/database.types";
 
 interface Props {
   caseId: string;
   customerEmail: string | null;
+  caseStatus: CaseStatus;
 }
 
-export function NotifyButton({ caseId, customerEmail }: Props) {
+export function NotifyButton({ caseId, customerEmail, caseStatus }: Props) {
   const [sending, setSending] = useState(false);
 
+  const isCompleted = caseStatus === "completata";
+  const hasEmail = !!customerEmail;
+  const disabled = sending || !isCompleted || !hasEmail;
+
+  const tooltip = !isCompleted
+    ? "Disponibile quando la pratica è 'Completata'"
+    : !hasEmail
+      ? "Cliente senza email"
+      : `Invia notifica via email a ${customerEmail}`;
+
   async function handleNotify() {
-    if (!customerEmail) {
+    if (!isCompleted) {
+      toast.error("Pratica non completata", {
+        description: "Puoi inviare la notifica solo quando lo stato è 'Completata'.",
+      });
+      return;
+    }
+    if (!hasEmail) {
       toast.error("Cliente senza email", {
         description: "Aggiungi l'indirizzo email del cliente prima di inviare.",
       });
@@ -56,14 +74,10 @@ export function NotifyButton({ caseId, customerEmail }: Props) {
   return (
     <button
       onClick={handleNotify}
-      disabled={sending}
-      className="btn-secondary"
+      disabled={disabled}
+      className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
       type="button"
-      title={
-        customerEmail
-          ? `Invia notifica via email a ${customerEmail}`
-          : "Cliente senza email"
-      }
+      title={tooltip}
     >
       <Mail className="w-4 h-4" />
       {sending ? "Invio..." : "Notifica cliente"}

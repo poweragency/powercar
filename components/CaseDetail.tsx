@@ -252,6 +252,7 @@ export function CaseDetail({
           <NotifyButton
             caseId={caseData.id}
             customerEmail={selectedCustomer?.email ?? null}
+            caseStatus={caseData.status}
           />
           <button
             onClick={handleDeleteCase}

@@ -123,6 +123,7 @@ export type Database = {
           status: Database["public"]["Enums"]["case_status"];
           updated_at: string;
           vehicle_id: string | null;
+          workshop_id: string;
         };
         Insert: {
           archived_at?: string | null;
@@ -137,6 +138,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["case_status"];
           updated_at?: string;
           vehicle_id?: string | null;
+          // Optional perché il trigger set_owner_id lo popola via
+          // current_workshop_id() per gli utenti autenticati.
+          workshop_id?: string;
         };
         Update: {
           archived_at?: string | null;
@@ -151,6 +155,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["case_status"];
           updated_at?: string;
           vehicle_id?: string | null;
+          workshop_id?: string;
         };
         Relationships: [
           {
