@@ -195,29 +195,24 @@ export default async function DashboardPage() {
 
       {showOnboarding && <OnboardingGuide profileDone={profileDone} fbDone={fbDone} />}
 
-      {/* KPI cards con sparkline */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {statCards.map((s) => {
-          const Icon = s.icon;
-          return (
-            <div
-              key={s.label}
-              className="card p-5 hover:border-border-hover hover:shadow-card-hover transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-xs uppercase tracking-wide text-text-muted">
-                  {s.label}
-                </div>
-                <Icon className={`w-4 h-4 ${s.color}`} strokeWidth={2} />
-              </div>
-              <div className="text-3xl font-semibold mt-3 tabular-nums">{s.value}</div>
-              <div className="mt-3 -mb-1">
-                <Sparkline data={s.data} stroke={s.stroke} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* KPI cards con sparkline.
+       *
+       * Owner: 4 card in fila (Lead, Clienti, Aperte, Completate).
+       * Staff: 2 card sopra (Clienti, Aperte) + le altre 2 sotto, ai
+       * lati del donut, per evitare lo spazio vuoto a destra che
+       * c'era col donut da solo. */}
+      {showRevenue ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {statCards.map((s) => (
+            <KpiCard key={s.label} stat={s} />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <KpiCard stat={statCards[1]} />
+          <KpiCard stat={statCards[2]} />
+        </div>
+      )}
 
       {/* Fatturato cards — visibili solo all'owner */}
       {showRevenue && (
@@ -270,15 +265,13 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Grafici fatturato 30gg (solo owner) + status donut (tutti) */}
-      <div
-        className={
-          showRevenue
-            ? "grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6"
-            : "grid grid-cols-1 lg:max-w-md lg:mx-auto gap-4 mb-6"
-        }
-      >
-        {showRevenue && (
+      {/* Riga centrale.
+       *
+       * Owner: fatturato 30gg (col-span-2) + donut.
+       * Staff: Lead totali + donut + Pratiche completate (3 col uguali)
+       * — riempie lo spazio che altrimenti restava vuoto a destra. */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {showRevenue ? (
           <div className="card p-5 lg:col-span-2 hover:shadow-card-hover transition-all">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold">Fatturato 30 giorni</h2>
@@ -288,6 +281,8 @@ export default async function DashboardPage() {
             </div>
             <RevenueChart data={revenueDaily} />
           </div>
+        ) : (
+          <KpiCard stat={statCards[0]} />
         )}
 
         <div className="card p-5 hover:shadow-card-hover transition-all">
@@ -300,6 +295,8 @@ export default async function DashboardPage() {
             </div>
           )}
         </div>
+
+        {!showRevenue && <KpiCard stat={statCards[3]} />}
       </div>
 
       {/* Oggi: appuntamenti */}
@@ -434,6 +431,33 @@ export default async function DashboardPage() {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+type StatCard = {
+  label: string;
+  value: number;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  color: string;
+  stroke: string;
+  data: number[];
+};
+
+function KpiCard({ stat }: { stat: StatCard }) {
+  const Icon = stat.icon;
+  return (
+    <div className="card p-5 hover:border-border-hover hover:shadow-card-hover transition-all">
+      <div className="flex items-center justify-between">
+        <div className="text-xs uppercase tracking-wide text-text-muted">
+          {stat.label}
+        </div>
+        <Icon className={`w-4 h-4 ${stat.color}`} strokeWidth={2} />
+      </div>
+      <div className="text-3xl font-semibold mt-3 tabular-nums">{stat.value}</div>
+      <div className="mt-3 -mb-1">
+        <Sparkline data={stat.data} stroke={stat.stroke} />
       </div>
     </div>
   );
