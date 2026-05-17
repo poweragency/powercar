@@ -19,7 +19,6 @@ const AVATAR_COLORS = [
 import { caseFormSchema } from "@/lib/schemas";
 import { CasePanel } from "./case/CasePanel";
 import { Field } from "./case/Field";
-import { Combobox } from "./ui/Combobox";
 import { CustomerFormModal } from "./customer/CustomerFormModal";
 import { VehicleFormModal } from "./customer/VehicleFormModal";
 import type { Case, CaseStatus, Customer, Vehicle } from "@/types/database.types";
@@ -568,20 +567,33 @@ function NewCaseModal({
         <div className="p-5 space-y-6">
           <div className="space-y-3">
             <Field label="Cliente *" htmlFor="nc-customer" error={errors["customer"]}>
-              <Combobox
-                id="nc-customer"
-                ariaLabel="Seleziona cliente"
-                value={customerId}
-                onChange={handleCustomerChange}
-                options={customerOptions}
-                placeholder={loading ? "Caricamento..." : "Seleziona cliente"}
-                disabled={loading}
-                emptyLabel="Nessun cliente. Usa '+ Crea nuovo cliente'."
-                createAction={{
-                  label: "Crea nuovo cliente",
-                  onClick: () => setShowCustomerModal(true),
-                }}
-              />
+              <div className="flex gap-2">
+                <select
+                  id="nc-customer"
+                  value={customerId}
+                  onChange={(e) => handleCustomerChange(e.target.value)}
+                  disabled={loading}
+                  className="input-base flex-1"
+                >
+                  <option value="" disabled>
+                    {loading ? "Caricamento..." : "— Seleziona cliente —"}
+                  </option>
+                  {customerOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomerModal(true)}
+                  className="btn-secondary py-1.5 shrink-0"
+                  title="Crea un nuovo cliente"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Nuovo
+                </button>
+              </div>
             </Field>
 
             <Field
@@ -591,29 +603,42 @@ function NewCaseModal({
                 !customerId
                   ? "Seleziona prima un cliente per vedere le sue vetture"
                   : filteredVehicles.length === 0
-                    ? "Il cliente non ha ancora vetture — usa '+ Aggiungi vettura'"
+                    ? "Il cliente non ha ancora vetture — usa '+ Nuovo'"
                     : undefined
               }
             >
-              <Combobox
-                id="nc-vehicle"
-                ariaLabel="Seleziona veicolo"
-                value={vehicleId}
-                onChange={setVehicleId}
-                options={vehicleOptions}
-                placeholder="Nessun veicolo"
-                disabled={!customerId || loading}
-                disabledHint="Seleziona prima un cliente"
-                emptyLabel="Il cliente non ha vetture"
-                createAction={
-                  customerId
-                    ? {
-                        label: "Aggiungi vettura al cliente",
-                        onClick: () => setShowVehicleModal(true),
-                      }
-                    : undefined
-                }
-              />
+              <div className="flex gap-2">
+                <select
+                  id="nc-vehicle"
+                  value={vehicleId}
+                  onChange={(e) => setVehicleId(e.target.value)}
+                  disabled={!customerId || loading || vehicleOptions.length === 0}
+                  className="input-base flex-1"
+                >
+                  <option value="">
+                    {vehicleOptions.length === 0 ? "— Nessun veicolo —" : "— Nessuno —"}
+                  </option>
+                  {vehicleOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowVehicleModal(true)}
+                  disabled={!customerId}
+                  className="btn-secondary py-1.5 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={
+                    customerId
+                      ? "Aggiungi un veicolo a questo cliente"
+                      : "Seleziona prima un cliente"
+                  }
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Nuovo
+                </button>
+              </div>
             </Field>
           </div>
 

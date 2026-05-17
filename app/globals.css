@@ -92,7 +92,9 @@
   body {
     background-color: rgb(var(--bg));
     color: rgb(var(--text));
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -121,6 +123,28 @@
     @apply w-full bg-bg-input border border-border rounded-md px-3 py-2 text-sm
            placeholder:text-text-subtle focus:outline-none focus:border-accent
            focus:ring-1 focus:ring-accent transition-colors min-h-[40px];
+  }
+  /* Native <select> styling — niente appearance browser, chevron custom
+   * e sfondo del closed-state più distinguibile dallo sfondo della pagina. */
+  select.input-base {
+    @apply bg-bg-hover pr-9 cursor-pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 12px;
+  }
+  select.input-base:hover {
+    @apply border-border-hover;
+  }
+  /* Le option list sono OS-native, ma la maggior parte dei browser
+   * rispetta queste regole quando color-scheme è impostato. */
+  select.input-base option {
+    background-color: rgb(var(--bg-card));
+    color: rgb(var(--text));
+    padding: 6px 8px;
   }
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover
