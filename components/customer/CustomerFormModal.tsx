@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -16,6 +16,15 @@ interface Props {
 
 export function CustomerFormModal({ initial, onClose, onSaved }: Props) {
   const supabase = createClient();
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   const [values, setValues] = useState<CustomerFormValues>({
     full_name: initial?.full_name ?? "",
     phone: initial?.phone ?? null,

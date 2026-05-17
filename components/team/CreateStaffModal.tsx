@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Eye, EyeOff, Copy, Check, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Field } from "@/components/case/Field";
@@ -31,6 +31,14 @@ export function CreateStaffModal({ onClose, onCreated }: Props) {
     email: string;
     password: string;
   } | null>(null);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   async function handleCreate() {
     setError(null);

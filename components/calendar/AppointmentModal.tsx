@@ -1,12 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { appointmentFormSchema, type AppointmentFormValues } from "@/lib/schemas";
 import { useConfirm } from "../ConfirmDialog";
-import type { Appointment, AppointmentKind, Customer, Case } from "@/types/database.types";
+import type {
+  Appointment,
+  AppointmentKind,
+  Customer,
+  Case,
+} from "@/types/database.types";
 
 const KIND_LABELS: Record<AppointmentKind, string> = {
   accettazione: "Accettazione",
@@ -54,8 +59,18 @@ export function AppointmentModal({
   const [customerId, setCustomerId] = useState<string>(appointment?.customer_id ?? "");
   const [caseId, setCaseId] = useState<string>(appointment?.case_id ?? "");
   const [notes, setNotes] = useState<string>(appointment?.notes ?? "");
-  const [errors, setErrors] = useState<Partial<Record<keyof AppointmentFormValues, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof AppointmentFormValues, string>>
+  >({});
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const filteredCases = useMemo(() => {
     if (!customerId) return [];
@@ -124,7 +139,10 @@ export function AppointmentModal({
       variant: "danger",
     });
     if (!ok) return;
-    const { error } = await supabase.from("appointments").delete().eq("id", appointment.id);
+    const { error } = await supabase
+      .from("appointments")
+      .delete()
+      .eq("id", appointment.id);
     if (error) {
       toast.error("Eliminazione fallita", { description: error.message });
       return;
@@ -146,7 +164,11 @@ export function AppointmentModal({
           <h2 className="text-base font-semibold">
             {appointment ? "Modifica appuntamento" : "Nuovo appuntamento"}
           </h2>
-          <button onClick={onClose} className="text-text-muted hover:text-text" type="button">
+          <button
+            onClick={onClose}
+            className="text-text-muted hover:text-text"
+            type="button"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -258,7 +280,12 @@ export function AppointmentModal({
             <button onClick={onClose} className="btn-secondary" type="button">
               Annulla
             </button>
-            <button onClick={handleSave} disabled={saving} className="btn-primary" type="button">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="btn-primary"
+              type="button"
+            >
               {saving ? "Salvataggio..." : "Salva"}
             </button>
           </div>

@@ -51,7 +51,10 @@ export function NotificationBell({ ownerId }: { ownerId: string }) {
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
+    let realtimeConnected = false;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    async function refetch() {
       const { data } = await supabase
         .from("notifications")
         .select("*")
@@ -60,7 +63,9 @@ export function NotificationBell({ ownerId }: { ownerId: string }) {
       if (!mounted) return;
       setItems(data ?? []);
       setLoading(false);
-    })();
+    }
+
+    refetch();
 
     const channel = supabase
       .channel("notifications-changes")
@@ -90,10 +95,31 @@ export function NotificationBell({ ownerId }: { ownerId: string }) {
           setItems((prev) => prev.map((n) => (n.id === row.id ? row : n)));
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          realtimeConnected = true;
+          if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+          }
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          realtimeConnected = false;
+        }
+      });
+
+    // Fallback: se realtime non si connette entro 10s o si disconnette,
+    // poll ogni 30s per mantenere le notifiche aggiornate.
+    const fallbackTimer = setTimeout(() => {
+      if (!mounted || realtimeConnected) return;
+      pollTimer = setInterval(() => {
+        if (!realtimeConnected) refetch();
+      }, 30_000);
+    }, 10_000);
 
     return () => {
       mounted = false;
+      clearTimeout(fallbackTimer);
+      if (pollTimer) clearInterval(pollTimer);
       supabase.removeChannel(channel);
     };
   }, [supabase, ownerId]);
