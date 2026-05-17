@@ -90,7 +90,6 @@ export function CaseDetail({
 
   const [caseForm, setCaseForm] = useState<CaseFormInputValues>({
     status: initialCase.status,
-    insurance_company: initialCase.insurance_company ?? null,
     description: initialCase.description ?? null,
     price: initialCase.price?.toString() ?? "",
   });
@@ -141,7 +140,6 @@ export function CaseDetail({
 
     const caseResult = caseFormSchema.safeParse({
       status: caseForm.status,
-      insurance_company: caseForm.insurance_company,
       description: caseForm.description,
       price: caseForm.price,
     });
@@ -323,7 +321,6 @@ export function CaseDetail({
           values={caseForm}
           errors={{
             status: errors["case.status"],
-            insurance_company: errors["case.insurance_company"],
             description: errors["case.description"],
             price: errors["case.price"],
           }}

@@ -427,7 +427,6 @@ function NewCaseModal({
 
   const [caseForm, setCaseForm] = useState({
     status: "preventivo" as CaseStatus,
-    insurance_company: null as string | null,
     description: null as string | null,
     price: "",
   });
@@ -521,7 +520,6 @@ function NewCaseModal({
           customer_id: customerId,
           vehicle_id: vehicleId || null,
           status: caseResult.data.status,
-          insurance_company: caseResult.data.insurance_company,
           description: caseResult.data.description,
           price: caseResult.data.price,
         })
@@ -646,7 +644,6 @@ function NewCaseModal({
             values={caseForm}
             errors={{
               status: errors["case.status"],
-              insurance_company: errors["case.insurance_company"],
               description: errors["case.description"],
               price: errors["case.price"],
             }}

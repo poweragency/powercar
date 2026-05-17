@@ -5,10 +5,9 @@ const trimmedOrNull = z
   .transform((v) => v.trim())
   .transform((v) => (v.length === 0 ? null : v));
 
-const emailOrNull = z.union([
-  z.literal(""),
-  z.string().email("Email non valida"),
-]).transform((v) => (v === "" ? null : v));
+const emailOrNull = z
+  .union([z.literal(""), z.string().email("Email non valida")])
+  .transform((v) => (v === "" ? null : v));
 
 const numericString = z
   .string()
@@ -69,7 +68,11 @@ export const vehicleFormSchema = z.object({
     .string()
     .transform((v) => v.trim())
     .refine(
-      (v) => v === "" || (/^\d{4}$/.test(v) && Number(v) >= 1900 && Number(v) <= new Date().getFullYear() + 1),
+      (v) =>
+        v === "" ||
+        (/^\d{4}$/.test(v) &&
+          Number(v) >= 1900 &&
+          Number(v) <= new Date().getFullYear() + 1),
       "Anno non valido"
     )
     .transform((v) => (v === "" ? null : Number(v)))
@@ -106,7 +109,6 @@ export const caseStatusEnum = z.enum([
 
 export const caseFormSchema = z.object({
   status: caseStatusEnum,
-  insurance_company: trimmedOrNull.nullable(),
   price: numericString.nullable(),
   description: trimmedOrNull.nullable(),
 });
@@ -115,7 +117,6 @@ export type CaseFormValues = z.infer<typeof caseFormSchema>;
 
 export type CaseFormInputValues = {
   status: z.infer<typeof caseStatusEnum>;
-  insurance_company: string | null;
   description: string | null;
   price: string;
 };
@@ -201,7 +202,10 @@ export const profileFormSchema = z.object({
   invoice_prefix: z
     .string()
     .transform((v) => v.trim().toUpperCase())
-    .refine((v) => v === "" || /^[A-Z0-9-]{2,10}$/.test(v), "Prefisso non valido (es. PREV)")
+    .refine(
+      (v) => v === "" || /^[A-Z0-9-]{2,10}$/.test(v),
+      "Prefisso non valido (es. PREV)"
+    )
     .transform((v) => (v === "" ? null : v))
     .nullable(),
   fb_page_id: trimmedOrNull.nullable(),
