@@ -842,9 +842,9 @@ export type Database = {
         | "lavorazione"
         | "altro";
       case_status:
-        | "preventivo"
-        | "attesa_pezzi"
-        | "lavorazione"
+        | "preparazione"
+        | "verniciatura"
+        | "finitura"
         | "completata"
         | "consegnata";
       invoice_kind: "preventivo" | "fattura";

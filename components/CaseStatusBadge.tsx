@@ -3,17 +3,17 @@ import type { CaseStatus } from "@/types/database.types";
 import { cn } from "@/lib/utils";
 
 const RING_COLORS: Record<CaseStatus, string> = {
-  preventivo: "ring-purple-500/40",
-  attesa_pezzi: "ring-yellow-500/40",
-  lavorazione: "ring-blue-500/40",
+  preparazione: "ring-purple-500/40",
+  verniciatura: "ring-yellow-500/40",
+  finitura: "ring-blue-500/40",
   completata: "ring-emerald-500/40",
   consegnata: "ring-accent/40",
 };
 
 const DOT_COLORS: Record<CaseStatus, string> = {
-  preventivo: "bg-purple-400",
-  attesa_pezzi: "bg-yellow-400",
-  lavorazione: "bg-blue-400",
+  preparazione: "bg-purple-400",
+  verniciatura: "bg-yellow-400",
+  finitura: "bg-blue-400",
   completata: "bg-emerald-400",
   consegnata: "bg-accent",
 };

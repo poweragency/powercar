@@ -101,9 +101,9 @@ export default async function DashboardPage() {
   const revenueDaily = (stats.revenue_daily ?? []).map((v) => Number(v));
 
   const statusCounts: Record<CaseStatus, number> = {
-    preventivo: 0,
-    attesa_pezzi: 0,
-    lavorazione: 0,
+    preparazione: 0,
+    verniciatura: 0,
+    finitura: 0,
     completata: 0,
     consegnata: 0,
   };

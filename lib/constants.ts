@@ -36,25 +36,25 @@ export const LEAD_STATUS_COLORS: Record<
 };
 
 export const CASE_STATUS_ORDER: CaseStatus[] = [
-  "preventivo",
-  "attesa_pezzi",
-  "lavorazione",
+  "preparazione",
+  "verniciatura",
+  "finitura",
   "completata",
   "consegnata",
 ];
 
 export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
-  preventivo: "Preventivo",
-  attesa_pezzi: "Attesa pezzi",
-  lavorazione: "In lavorazione",
+  preparazione: "Preparazione",
+  verniciatura: "Verniciatura",
+  finitura: "Finitura",
   completata: "Completata",
   consegnata: "Consegnata",
 };
 
 export const CASE_STATUS_COLORS: Record<CaseStatus, { bg: string; text: string }> = {
-  preventivo: { bg: "bg-chart-5/10", text: "text-chart-5" },
-  attesa_pezzi: { bg: "bg-status-warning/10", text: "text-status-warning" },
-  lavorazione: { bg: "bg-status-info/10", text: "text-status-info" },
+  preparazione: { bg: "bg-chart-5/10", text: "text-chart-5" },
+  verniciatura: { bg: "bg-status-warning/10", text: "text-status-warning" },
+  finitura: { bg: "bg-status-info/10", text: "text-status-info" },
   completata: { bg: "bg-status-success/10", text: "text-status-success" },
   consegnata: { bg: "bg-accent/10", text: "text-accent" },
 };

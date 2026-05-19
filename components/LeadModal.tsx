@@ -141,7 +141,7 @@ export function LeadModal({ lead, onClose, onSaved }: Props) {
           .from("cases")
           .select("id")
           .in("customer_id", customerIds)
-          .in("status", ["preventivo", "attesa_pezzi", "lavorazione"])
+          .in("status", ["preparazione", "verniciatura", "finitura"])
       : { data: [] as Array<{ id: string }> };
     const openCaseIds = openCasesData?.map((c) => c.id) ?? [];
 

@@ -100,9 +100,9 @@ export type VehicleFormInputValues = {
 // ============================================================
 
 export const caseStatusEnum = z.enum([
-  "preventivo",
-  "attesa_pezzi",
-  "lavorazione",
+  "preparazione",
+  "verniciatura",
+  "finitura",
   "completata",
   "consegnata",
 ]);

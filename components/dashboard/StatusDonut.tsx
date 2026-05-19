@@ -2,9 +2,9 @@ import { CASE_STATUS_LABELS, CASE_STATUS_ORDER } from "@/lib/constants";
 import type { CaseStatus } from "@/types/database.types";
 
 const COLORS: Record<CaseStatus, string> = {
-  preventivo: "rgb(var(--chart-5))",
-  attesa_pezzi: "rgb(var(--status-warning))",
-  lavorazione: "rgb(var(--status-info))",
+  preparazione: "rgb(var(--chart-5))",
+  verniciatura: "rgb(var(--status-warning))",
+  finitura: "rgb(var(--status-info))",
   completata: "rgb(var(--status-success))",
   consegnata: "rgb(var(--accent))",
 };

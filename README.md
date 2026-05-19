@@ -121,7 +121,7 @@ Apri http://localhost:3000 e accedi.
 | `leads` | Lead in arrivo (FB Ads o manuali). Status: `nuovo · contattato · preventivo · cliente · perso` |
 | `customers` | Creati automaticamente quando lead passa a `cliente` (trigger) |
 | `vehicles` | Veicoli del cliente (uno-a-molti per cliente). Make/Model/Plate/VIN/Year/Color |
-| `cases` | Pratiche officina. Status: `preventivo · attesa_pezzi · lavorazione · completata · consegnata`. FK opzionale a `vehicles` |
+| `cases` | Pratiche officina. Status: `preparazione · verniciatura · finitura · completata · consegnata`. FK opzionale a `vehicles` |
 | `documents` | Foto danni e PDF caricati. Storage bucket `documents` (privato, 10MB) |
 | `notes` | Note testuali su lead OR case (vincolo XOR) |
 | `appointments` | Calendario. Kind: `accettazione · consegna · sopralluogo · lavorazione · altro` |

@@ -8,7 +8,7 @@ import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { CaseStatus } from "@/types/database.types";
 
-const OPEN_STATUSES: CaseStatus[] = ["preventivo", "attesa_pezzi", "lavorazione"];
+const OPEN_STATUSES: CaseStatus[] = ["preparazione", "verniciatura", "finitura"];
 const CLOSED_STATUSES: CaseStatus[] = ["completata", "consegnata"];
 
 export interface CustomerCase {

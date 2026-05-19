@@ -4,7 +4,7 @@ import type { CaseStatus } from "@/types/database.types";
 
 export const dynamic = "force-dynamic";
 
-const OPEN_STATUSES: CaseStatus[] = ["preventivo", "attesa_pezzi", "lavorazione"];
+const OPEN_STATUSES: CaseStatus[] = ["preparazione", "verniciatura", "finitura"];
 const CLOSED_STATUSES: CaseStatus[] = ["completata", "consegnata"];
 
 export interface CustomerRow {

@@ -426,7 +426,7 @@ function NewCaseModal({
   const [showVehicleModal, setShowVehicleModal] = useState(false);
 
   const [caseForm, setCaseForm] = useState({
-    status: "preventivo" as CaseStatus,
+    status: "preparazione" as CaseStatus,
     description: null as string | null,
     price: "",
   });
