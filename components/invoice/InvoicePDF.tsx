@@ -279,9 +279,6 @@ export function InvoicePDF(props: InvoicePDFProps) {
 
         <View style={styles.footer}>
           {workshop.iban && <Text>Coordinate bancarie: {workshop.iban}</Text>}
-          <Text>
-            {title} generato da CRM Officina · {fmtDate(new Date().toISOString())}
-          </Text>
         </View>
       </Page>
     </Document>
