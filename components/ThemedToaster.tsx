@@ -11,7 +11,7 @@ export function ThemedToaster() {
       theme={theme}
       richColors
       closeButton
-      toastOptions={{ duration: 3000 }}
+      toastOptions={{ duration: 2400 }}
     />
   );
 }

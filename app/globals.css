@@ -205,6 +205,13 @@
   }
 }
 
+/* Toast exit graduale: il toast resta visibile per `duration` ms (es. 2400)
+   poi fade-out smooth in 600ms — totale ~3s. */
+[data-sonner-toast][data-removed="true"] {
+  transition-duration: 600ms !important;
+  transition-timing-function: ease-out !important;
+}
+
 @layer utilities {
   .animate-slide-in-right {
     animation: slide-in-right 200ms ease-out;
