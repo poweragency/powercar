@@ -95,6 +95,23 @@ export function NotificationBell({ ownerId }: { ownerId: string }) {
           setItems((prev) => prev.map((n) => (n.id === row.id ? row : n)));
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "notifications",
+          filter: `owner_id=eq.${ownerId}`,
+        },
+        (payload) => {
+          // Funziona perché la tabella ha REPLICA IDENTITY FULL: il
+          // payload old contiene tutta la riga, non solo l'id, così
+          // il filtro su owner_id matcha.
+          const row = payload.old as Partial<Notification>;
+          if (!row?.id) return;
+          setItems((prev) => prev.filter((n) => n.id !== row.id));
+        }
+      )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
           realtimeConnected = true;
