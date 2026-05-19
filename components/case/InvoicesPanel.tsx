@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import type { Invoice, InvoiceStatus } from "@/types/database.types";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
   bozza: "Bozza",
@@ -30,13 +31,26 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
 interface Props {
   caseId: string;
   invoices: Invoice[];
+  parentDirty?: boolean;
 }
 
-export function InvoicesPanel({ caseId, invoices }: Props) {
+export function InvoicesPanel({ caseId, invoices, parentDirty = false }: Props) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [creating, setCreating] = useState(false);
 
   async function createNew() {
+    if (parentDirty) {
+      const ok = await confirm({
+        title: "Modifiche non salvate sulla pratica",
+        description:
+          "Hai modifiche non salvate. Se apri ora un preventivo, le perderai. Salva prima la pratica, oppure procedi e perdi le modifiche.",
+        confirmLabel: "Procedi senza salvare",
+        cancelLabel: "Resta e salva",
+        variant: "danger",
+      });
+      if (!ok) return;
+    }
     setCreating(true);
     try {
       // Si crea come bozza di preventivo. Nell'editor l'utente può

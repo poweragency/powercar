@@ -1,17 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Plus,
-  Trash2,
-  Save,
-  Download,
-  FileText,
-  Info,
-  EyeOff,
-} from "lucide-react";
+import { Plus, Trash2, Save, Download, FileText, Info, EyeOff } from "lucide-react";
 import { Breadcrumb } from "../ui/Breadcrumb";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +11,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { invoiceFormSchema, type InvoiceFormValues } from "@/lib/schemas";
 import { InvoicePDF } from "./InvoicePDF";
 import { useConfirm } from "../ConfirmDialog";
+import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
 import type {
   Invoice,
   InvoiceItem,
@@ -109,16 +102,36 @@ export function InvoiceEditor({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
 
-  useEffect(() => {
-    if (!dirty) return;
-    function onBeforeUnload(e: BeforeUnloadEvent) {
-      e.preventDefault();
-      e.returnValue = "";
-    }
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [dirty]);
+  useUnsavedChangesWarning(dirty);
 
+  // Bozza creata al click "+ Preventivo / Fattura" prima ancora che l'utente
+  // compili qualcosa: se esce senza salvare, la rimuoviamo per non sporcare
+  // la lista con bozze fantasma da 0 €.
+  const wasFreshlyCreatedRef = useRef(initialItems.length === 0);
+  const savedOnceRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (!wasFreshlyCreatedRef.current || savedOnceRef.current) return;
+      const invoiceId = invoice.id;
+      // setTimeout difende dal doppio mount di React Strict Mode in dev:
+      // se il componente si rimonta entro pochi ms, abortiamo la delete.
+      setTimeout(() => {
+        if (mountedRef.current) return;
+        createClient()
+          .from("invoices")
+          .delete()
+          .eq("id", invoiceId)
+          .then(() => {
+            /* fire-and-forget */
+          });
+      }, 50);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const computed = useMemo(() => {
     const numericRate = Number(vatRate) || 0;
@@ -128,7 +141,7 @@ export function InvoiceEditor({
       return { ...it, line_total: Math.round(q * p * 100) / 100 };
     });
     const subtotal = lines.reduce((sum, l) => sum + l.line_total, 0);
-    const vat = Math.round((subtotal * numericRate) / 100 * 100) / 100;
+    const vat = Math.round(((subtotal * numericRate) / 100) * 100) / 100;
     return {
       lines,
       subtotal,
@@ -204,6 +217,8 @@ export function InvoiceEditor({
       });
       if (rpcErr) throw new Error(`Righe: ${rpcErr.message}`);
 
+      savedOnceRef.current = true;
+      wasFreshlyCreatedRef.current = false;
       setDirty(false);
       toast.success("Salvato");
       router.refresh();
@@ -461,9 +476,7 @@ export function InvoiceEditor({
               </div>
             );
           })}
-          {errors["items"] && (
-            <p className="text-xs text-red-400">{errors["items"]}</p>
-          )}
+          {errors["items"] && <p className="text-xs text-red-400">{errors["items"]}</p>}
         </div>
 
         <div className="border-t border-border mt-4 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
@@ -535,7 +548,12 @@ export function InvoiceEditor({
               )
             }
           </PDFDownloadLink>
-          <button onClick={handleSave} disabled={saving} className="btn-primary" type="button">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-primary"
+            type="button"
+          >
             <Save className="w-4 h-4" />
             {saving ? "Salvataggio..." : "Salva"}
           </button>

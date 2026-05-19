@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, RotateCcw, Save, Trash2 } from "lucide-react";
 import { Breadcrumb } from "./ui/Breadcrumb";
@@ -20,6 +20,7 @@ import { NotifyWhatsAppButton } from "./case/NotifyWhatsAppButton";
 import { CustomerFormModal } from "./customer/CustomerFormModal";
 import { VehicleFormModal } from "./customer/VehicleFormModal";
 import { useConfirm } from "./ConfirmDialog";
+import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
 import type {
   Case,
   CaseStatus,
@@ -122,15 +123,7 @@ export function CaseDetail({
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
 
-  useEffect(() => {
-    if (!dirty) return;
-    function onBeforeUnload(e: BeforeUnloadEvent) {
-      e.preventDefault();
-      e.returnValue = "";
-    }
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [dirty]);
+  useUnsavedChangesWarning(dirty);
 
   function handleSelectCustomer(id: string | null) {
     setSelectedCustomerId(id);
@@ -386,7 +379,7 @@ export function CaseDetail({
       </div>
 
       <div className="card p-5 mb-5">
-        <InvoicesPanel caseId={caseData.id} invoices={invoices} />
+        <InvoicesPanel caseId={caseData.id} invoices={invoices} parentDirty={dirty} />
       </div>
 
       <div className="fixed inset-x-0 bottom-0 sm:left-auto sm:right-8 sm:bottom-6 sm:inset-x-auto z-30 p-3 sm:p-0">
