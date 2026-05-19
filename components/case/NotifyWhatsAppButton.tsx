@@ -46,16 +46,15 @@ export function NotifyWhatsAppButton({
   if (!isAdmin && role !== "owner") return null;
 
   const isCompleted = caseStatus === "completata";
+  const hasPhone = !!customerPhone;
   const waNumber = customerPhone ? normalizeForWa(customerPhone) : null;
-  const disabled = !isCompleted || !waNumber;
+  const disabled = !isCompleted || !hasPhone;
 
   const tooltip = !isCompleted
     ? "Disponibile quando la pratica è 'Completata'"
-    : !customerPhone
+    : !hasPhone
       ? "Cliente senza numero di telefono"
-      : !waNumber
-        ? "Numero di telefono non valido per WhatsApp"
-        : `Apri WhatsApp per scrivere a ${customerPhone}`;
+      : `Apri WhatsApp per scrivere a ${customerPhone}`;
 
   function handleClick(e: React.MouseEvent) {
     if (disabled) {
@@ -64,16 +63,18 @@ export function NotifyWhatsAppButton({
         toast.error("Pratica non completata", {
           description: "Puoi inviare la notifica solo quando lo stato è 'Completata'.",
         });
-      } else if (!customerPhone) {
+      } else {
         toast.error("Cliente senza telefono", {
           description: "Aggiungi il numero di telefono del cliente.",
         });
-      } else {
-        toast.error("Numero non valido", {
-          description: "Il numero del cliente non è in un formato valido per WhatsApp.",
-        });
       }
       return;
+    }
+    if (!waNumber) {
+      e.preventDefault();
+      toast.error("Numero non valido", {
+        description: "Il numero del cliente non è in un formato valido per WhatsApp.",
+      });
     }
   }
 
@@ -110,6 +111,7 @@ export function NotifyWhatsAppButton({
   return (
     <a
       href={href}
+      onClick={handleClick}
       target="_blank"
       rel="noopener noreferrer"
       className="btn-secondary text-center"
