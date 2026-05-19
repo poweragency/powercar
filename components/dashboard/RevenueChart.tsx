@@ -70,8 +70,8 @@ export function RevenueChart({ data }: Props) {
       >
         <defs>
           <linearGradient id="revenue-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(var(--accent))" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="rgb(var(--accent))" stopOpacity="0" />
+            <stop offset="0%" stopColor="rgb(var(--status-success))" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="rgb(var(--status-success))" stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -93,7 +93,7 @@ export function RevenueChart({ data }: Props) {
         <path
           d={lineD}
           fill="none"
-          stroke="rgb(var(--accent))"
+          stroke="rgb(var(--status-success))"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -105,7 +105,7 @@ export function RevenueChart({ data }: Props) {
             cx={points[points.length - 1][0]}
             cy={points[points.length - 1][1]}
             r="3"
-            fill="rgb(var(--accent))"
+            fill="rgb(var(--status-success))"
           />
         )}
 
