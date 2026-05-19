@@ -2,11 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, RotateCcw, Save, Trash2 } from "lucide-react";
+import { Archive, ArrowRight, RotateCcw, Save, Trash2, Lock } from "lucide-react";
 import { Breadcrumb } from "./ui/Breadcrumb";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { CASE_STATUS_LABELS, CASE_STATUS_ORDER } from "@/lib/constants";
+import {
+  CASE_PRODUCTION_STATUSES,
+  CASE_STATUS_LABELS,
+  CASE_STATUS_ORDER,
+} from "@/lib/constants";
 import { CaseStatusBadge } from "./CaseStatusBadge";
 import { formatDateTime, cn } from "@/lib/utils";
 import { caseFormSchema, type CaseFormInputValues } from "@/lib/schemas";
@@ -331,6 +335,7 @@ export function CaseDetail({
         </div>
         <CaseStatusTimeline
           current={caseForm.status}
+          canSeePostProduction={isAdmin || role === "owner"}
           onChange={(s) => {
             setCaseForm((f) => ({ ...f, status: s }));
             setDirty(true);
@@ -439,66 +444,109 @@ export function CaseDetail({
 
 function CaseStatusTimeline({
   current,
+  canSeePostProduction,
   onChange,
 }: {
   current: CaseStatus;
+  canSeePostProduction: boolean;
   onChange: (s: CaseStatus) => void;
 }) {
-  const currentIdx = CASE_STATUS_ORDER.indexOf(current);
+  // Lo staff vede solo i tre step di produzione. La parte post-produzione
+  // (completata/consegnata/liquidato) è riservata all'owner — sia in lettura
+  // sia in scrittura. Lo staff può però "chiudere" la lavorazione tramite il
+  // bottone Concludi sotto la timeline: imposta lo stato a "completata" e
+  // questo fa scattare il trigger DB che notifica l'owner.
+  const visibleSteps = canSeePostProduction
+    ? CASE_STATUS_ORDER
+    : CASE_PRODUCTION_STATUSES;
+  const currentIdx = visibleSteps.indexOf(current);
+  const isHandedOff = !canSeePostProduction && currentIdx === -1;
+  // Per la barra di progresso: se la pratica è già oltre la produzione (staff
+  // che guarda una pratica passata all'owner), mostriamo tutto come completato.
+  const progressIdx = isHandedOff ? visibleSteps.length - 1 : currentIdx;
+
   return (
-    <div className="relative">
-      <div className="flex items-center justify-between gap-1 sm:gap-2">
-        {CASE_STATUS_ORDER.map((s, i) => {
-          const isCurrent = i === currentIdx;
-          const isDone = i < currentIdx;
-          return (
-            <div key={s} className="flex-1 flex flex-col items-center min-w-0">
-              <button
-                onClick={() => onChange(s)}
-                type="button"
-                className={cn(
-                  "relative w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-semibold transition-all",
-                  isCurrent &&
-                    "bg-accent border-accent text-white shadow-[0_0_0_4px_rgba(249,115,22,0.2)]",
-                  isDone && "bg-accent/30 border-accent/60 text-accent",
-                  !isCurrent &&
-                    !isDone &&
-                    "bg-bg-hover border-border text-text-subtle hover:border-border-hover hover:text-text"
-                )}
-                aria-label={CASE_STATUS_LABELS[s]}
-              >
-                {isDone ? "✓" : i + 1}
-              </button>
-              <span
-                className={cn(
-                  "text-[10px] mt-1.5 text-center truncate w-full",
-                  isCurrent
-                    ? "text-accent font-semibold"
-                    : isDone
-                      ? "text-text-muted"
-                      : "text-text-subtle"
-                )}
-              >
-                {CASE_STATUS_LABELS[s]}
-              </span>
-            </div>
-          );
-        })}
+    <div>
+      <div className="relative">
+        <div className="flex items-center justify-between gap-1 sm:gap-2">
+          {visibleSteps.map((s, i) => {
+            const isCurrent = !isHandedOff && i === currentIdx;
+            const isDone = isHandedOff || i < currentIdx;
+            return (
+              <div key={s} className="flex-1 flex flex-col items-center min-w-0">
+                <button
+                  onClick={() => onChange(s)}
+                  type="button"
+                  className={cn(
+                    "relative w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-semibold transition-all",
+                    isCurrent &&
+                      "bg-accent border-accent text-white shadow-[0_0_0_4px_rgba(249,115,22,0.2)]",
+                    isDone && "bg-accent/30 border-accent/60 text-accent",
+                    !isCurrent &&
+                      !isDone &&
+                      "bg-bg-hover border-border text-text-subtle hover:border-border-hover hover:text-text"
+                  )}
+                  aria-label={CASE_STATUS_LABELS[s]}
+                >
+                  {isDone ? "✓" : i + 1}
+                </button>
+                <span
+                  className={cn(
+                    "text-[10px] mt-1.5 text-center truncate w-full",
+                    isCurrent
+                      ? "text-accent font-semibold"
+                      : isDone
+                        ? "text-text-muted"
+                        : "text-text-subtle"
+                  )}
+                >
+                  {CASE_STATUS_LABELS[s]}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div
+          className="absolute top-3.5 left-[10%] right-[10%] h-px bg-border -z-0"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute top-3.5 left-[10%] h-px bg-accent/60 -z-0 transition-all"
+          style={{
+            width:
+              progressIdx > 0
+                ? `${(progressIdx / (visibleSteps.length - 1)) * 80}%`
+                : "0%",
+          }}
+          aria-hidden="true"
+        />
       </div>
-      <div
-        className="absolute top-3.5 left-[10%] right-[10%] h-px bg-border -z-0"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute top-3.5 left-[10%] h-px bg-accent/60 -z-0 transition-all"
-        style={{
-          width:
-            currentIdx > 0
-              ? `${(currentIdx / (CASE_STATUS_ORDER.length - 1)) * 80}%`
-              : "0%",
-        }}
-        aria-hidden="true"
-      />
+
+      {/* Staff: bottone "Concludi" quando la finitura è il current step.
+       *
+       * Cambia lo stato in 'completata' (= primo step post-produzione). Il
+       * trigger DB notify_finitura_done si occupa di avvisare l'owner. */}
+      {!canSeePostProduction && current === "finitura" && (
+        <button
+          type="button"
+          onClick={() => onChange("completata")}
+          className="btn-secondary w-full sm:w-auto mt-4"
+        >
+          <ArrowRight className="w-3.5 h-3.5" />
+          Concludi finitura e passa al titolare
+        </button>
+      )}
+
+      {/* Staff: indicatore quando la pratica è già stata passata all'owner.
+       *
+       * Lo stato resta visibile per coerenza ma non è modificabile dai
+       * dipendenti — è il titolare che gestisce consegna e liquidazione. */}
+      {isHandedOff && (
+        <div className="mt-4 flex items-center gap-2 text-[11px] text-text-muted bg-bg-hover/50 border border-border rounded-md px-3 py-2">
+          <Lock className="w-3 h-3 text-text-subtle" />
+          Lavorazione conclusa — in carico al titolare per consegna e liquidazione.
+        </div>
+      )}
     </div>
   );
 }

@@ -105,6 +105,7 @@ export const caseStatusEnum = z.enum([
   "finitura",
   "completata",
   "consegnata",
+  "liquidato",
 ]);
 
 export const caseFormSchema = z.object({

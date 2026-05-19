@@ -7,6 +7,7 @@ const COLORS: Record<CaseStatus, string> = {
   finitura: "rgb(var(--status-info))",
   completata: "rgb(var(--status-success))",
   consegnata: "rgb(var(--accent))",
+  liquidato: "rgb(16 185 129)",
 };
 
 interface Props {

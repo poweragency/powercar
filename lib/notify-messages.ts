@@ -13,4 +13,5 @@ export const CASE_NOTIFY_MESSAGES: Record<CaseStatus, string> = {
     "La riparazione del Suo veicolo è completata. Può venire a ritirarlo negli orari di apertura dell'officina.",
   consegnata:
     "Confermiamo la consegna del Suo veicolo. La ringraziamo per averci scelto e restiamo a disposizione per future esigenze.",
+  liquidato: "La pratica è stata liquidata e chiusa. La ringraziamo per averci scelto.",
 };

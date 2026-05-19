@@ -846,7 +846,8 @@ export type Database = {
         | "verniciatura"
         | "finitura"
         | "completata"
-        | "consegnata";
+        | "consegnata"
+        | "liquidato";
       invoice_kind: "preventivo" | "fattura";
       invoice_status:
         | "bozza"

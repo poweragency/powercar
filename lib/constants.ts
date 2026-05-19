@@ -41,6 +41,15 @@ export const CASE_STATUS_ORDER: CaseStatus[] = [
   "finitura",
   "completata",
   "consegnata",
+  "liquidato",
+];
+
+// Step della parte "produzione": visibili anche allo staff. Tutto il
+// resto (post-produzione) è riservato all'owner — vedi CaseDetail.
+export const CASE_PRODUCTION_STATUSES: CaseStatus[] = [
+  "preparazione",
+  "verniciatura",
+  "finitura",
 ];
 
 export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
@@ -49,6 +58,7 @@ export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
   finitura: "Finitura",
   completata: "Completata",
   consegnata: "Consegnata",
+  liquidato: "Liquidato",
 };
 
 export const CASE_STATUS_COLORS: Record<CaseStatus, { bg: string; text: string }> = {
@@ -57,4 +67,5 @@ export const CASE_STATUS_COLORS: Record<CaseStatus, { bg: string; text: string }
   finitura: { bg: "bg-status-info/10", text: "text-status-info" },
   completata: { bg: "bg-status-success/10", text: "text-status-success" },
   consegnata: { bg: "bg-accent/10", text: "text-accent" },
+  liquidato: { bg: "bg-emerald-500/10", text: "text-emerald-400" },
 };

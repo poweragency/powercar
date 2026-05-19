@@ -8,6 +8,7 @@ const RING_COLORS: Record<CaseStatus, string> = {
   finitura: "ring-blue-500/40",
   completata: "ring-emerald-500/40",
   consegnata: "ring-accent/40",
+  liquidato: "ring-emerald-500/40",
 };
 
 const DOT_COLORS: Record<CaseStatus, string> = {
@@ -16,6 +17,7 @@ const DOT_COLORS: Record<CaseStatus, string> = {
   finitura: "bg-blue-400",
   completata: "bg-emerald-400",
   consegnata: "bg-accent",
+  liquidato: "bg-emerald-500",
 };
 
 export function CaseStatusBadge({ status }: { status: CaseStatus }) {

@@ -106,6 +106,7 @@ export default async function DashboardPage() {
     finitura: 0,
     completata: 0,
     consegnata: 0,
+    liquidato: 0,
   };
   if (stats.status_counts) {
     for (const k of Object.keys(stats.status_counts) as CaseStatus[]) {

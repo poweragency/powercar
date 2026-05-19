@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import type { CaseStatus } from "@/types/database.types";
 
 const OPEN_STATUSES: CaseStatus[] = ["preparazione", "verniciatura", "finitura"];
-const CLOSED_STATUSES: CaseStatus[] = ["completata", "consegnata"];
+const CLOSED_STATUSES: CaseStatus[] = ["completata", "consegnata", "liquidato"];
 
 export interface CustomerCase {
   id: string;
