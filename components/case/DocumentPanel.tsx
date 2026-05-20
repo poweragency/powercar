@@ -8,13 +8,19 @@ import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image";
 import { PhotoGallery } from "./PhotoGallery";
 import { useConfirm } from "../ConfirmDialog";
-import type { Document } from "@/types/database.types";
+import type { Document, DocumentPhase } from "@/types/database.types";
 
 interface Props {
   caseId: string;
   documents: Document[];
   onChange: (next: Document[]) => void;
 }
+
+const PHASES: { key: DocumentPhase; label: string }[] = [
+  { key: "preparazione", label: "Fotografia di Fine Preparazione" },
+  { key: "verniciatura", label: "Fotografia di Fine Verniciatura" },
+  { key: "finitura", label: "Fotografia di Fine Finitura" },
+];
 
 function isImage(d: Document): boolean {
   return d.mime_type?.startsWith("image/") ?? false;
@@ -23,24 +29,34 @@ function isImage(d: Document): boolean {
 export function DocumentPanel({ caseId, documents, onChange }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const confirm = useConfirm();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingPhase, setUploadingPhase] = useState<DocumentPhase | null>(null);
   const [hasCamera, setHasCamera] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(any-pointer: coarse)");
     setHasCamera(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setHasCamera(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+    const onMatch = (e: MediaQueryListEvent) => setHasCamera(e.matches);
+    mq.addEventListener("change", onMatch);
+    return () => mq.removeEventListener("change", onMatch);
   }, []);
 
   const photos = useMemo(() => documents.filter(isImage), [documents]);
+  const photosByPhase = useMemo(() => {
+    const map: Record<DocumentPhase, Document[]> = {
+      preparazione: [],
+      verniciatura: [],
+      finitura: [],
+    };
+    for (const p of photos) {
+      const ph = (p.phase as DocumentPhase | null) ?? "preparazione";
+      if (ph in map) map[ph].push(p);
+    }
+    return map;
+  }, [photos]);
 
-  async function uploadFiles(inputFiles: FileList | null) {
+  async function uploadFiles(phase: DocumentPhase, inputFiles: FileList | null) {
     if (!inputFiles || inputFiles.length === 0) return;
-    setUploading(true);
+    setUploadingPhase(phase);
     try {
       const {
         data: { user },
@@ -72,6 +88,7 @@ export function DocumentPanel({ caseId, documents, onChange }: Props) {
             file_size: file.size,
             mime_type: file.type,
             uploaded_by: user.id,
+            phase,
           })
           .select()
           .single();
@@ -90,9 +107,7 @@ export function DocumentPanel({ caseId, documents, onChange }: Props) {
         );
       }
     } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
-      if (cameraRef.current) cameraRef.current.value = "";
+      setUploadingPhase(null);
     }
   }
 
@@ -115,12 +130,58 @@ export function DocumentPanel({ caseId, documents, onChange }: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
+        <ImageIcon className="w-3.5 h-3.5" />
+        Foto lavorazione
+        <span className="text-text-subtle">({photos.length})</span>
+      </div>
+
+      <div className="rounded-md border border-border bg-bg-elevated divide-y divide-border">
+        {PHASES.map((p) => (
+          <PhaseZone
+            key={p.key}
+            phase={p.key}
+            label={p.label}
+            photos={photosByPhase[p.key]}
+            uploading={uploadingPhase === p.key}
+            hasCamera={hasCamera}
+            onUpload={(files) => uploadFiles(p.key, files)}
+            onDelete={handleDelete}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface PhaseZoneProps {
+  phase: DocumentPhase;
+  label: string;
+  photos: Document[];
+  uploading: boolean;
+  hasCamera: boolean;
+  onUpload: (files: FileList | null) => void;
+  onDelete: (doc: Document) => Promise<void>;
+}
+
+function PhaseZone({
+  label,
+  photos,
+  uploading,
+  hasCamera,
+  onUpload,
+  onDelete,
+}: PhaseZoneProps) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="p-4 space-y-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
-          <ImageIcon className="w-3.5 h-3.5" />
-          Foto danni
-          <span className="text-text-subtle">({photos.length})</span>
+        <div className="text-sm font-medium text-text-primary">
+          {label}
+          <span className="ml-2 text-text-subtle text-xs">({photos.length})</span>
         </div>
         <div className="flex gap-2">
           <button
@@ -151,28 +212,40 @@ export function DocumentPanel({ caseId, documents, onChange }: Props) {
             type="button"
           >
             <Upload className="w-3.5 h-3.5" />
-            Carica foto
+            {uploading ? "..." : "Carica foto"}
           </button>
           <input
             ref={cameraRef}
             type="file"
             accept="image/*"
             capture="environment"
-            onChange={(e) => uploadFiles(e.target.files)}
+            onChange={(e) => {
+              onUpload(e.target.files);
+              if (cameraRef.current) cameraRef.current.value = "";
+            }}
             className="hidden"
           />
           <input
             ref={fileRef}
             type="file"
             multiple
-            onChange={(e) => uploadFiles(e.target.files)}
+            onChange={(e) => {
+              onUpload(e.target.files);
+              if (fileRef.current) fileRef.current.value = "";
+            }}
             className="hidden"
             accept="image/*"
           />
         </div>
       </div>
 
-      <PhotoGallery photos={photos} onDelete={handleDelete} />
+      {photos.length === 0 ? (
+        <div className="text-xs text-text-subtle italic py-2">
+          Nessuna foto caricata per questa fase.
+        </div>
+      ) : (
+        <PhotoGallery photos={photos} onDelete={onDelete} />
+      )}
     </div>
   );
 }

@@ -225,6 +225,7 @@ export type Database = {
           id: string;
           mime_type: string | null;
           owner_id: string | null;
+          phase: string | null;
           uploaded_by: string | null;
         };
         Insert: {
@@ -236,6 +237,7 @@ export type Database = {
           id?: string;
           mime_type?: string | null;
           owner_id?: string | null;
+          phase?: string | null;
           uploaded_by?: string | null;
         };
         Update: {
@@ -247,6 +249,7 @@ export type Database = {
           id?: string;
           mime_type?: string | null;
           owner_id?: string | null;
+          phase?: string | null;
           uploaded_by?: string | null;
         };
         Relationships: [
@@ -883,6 +886,7 @@ export type CaseUpdate = Database["public"]["Tables"]["cases"]["Update"];
 export type CaseStatus = Database["public"]["Enums"]["case_status"];
 
 export type Document = Database["public"]["Tables"]["documents"]["Row"];
+export type DocumentPhase = "preparazione" | "verniciatura" | "finitura";
 export type Note = Database["public"]["Tables"]["notes"]["Row"];
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
