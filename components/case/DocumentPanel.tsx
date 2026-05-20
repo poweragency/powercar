@@ -17,9 +17,9 @@ interface Props {
 }
 
 const PHASES: { key: DocumentPhase; label: string }[] = [
-  { key: "preparazione", label: "Fotografia di Fine Preparazione" },
-  { key: "verniciatura", label: "Fotografia di Fine Verniciatura" },
-  { key: "finitura", label: "Fotografia di Fine Finitura" },
+  { key: "preparazione", label: "Fotografia Post Preparazione" },
+  { key: "verniciatura", label: "Fotografia Post Verniciatura" },
+  { key: "finitura", label: "Fotografia Post Finitura" },
 ];
 
 function isImage(d: Document): boolean {
