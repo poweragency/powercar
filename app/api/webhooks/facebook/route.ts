@@ -122,10 +122,31 @@ export async function POST(req: NextRequest) {
       let email: string | null = null;
       let message: string | null = null;
       let rawPayload: unknown = change.value;
+      let campaignId: string | null = null;
+      let campaignName: string | null = null;
+      let adsetId: string | null = null;
+      let adsetName: string | null = null;
+      let adId: string | null = null;
+      let adName: string | null = null;
+      let formName: string | null = null;
 
       if (workshop.fb_page_access_token) {
         try {
-          const url = `https://graph.facebook.com/v18.0/${leadgen_id}?access_token=${workshop.fb_page_access_token}`;
+          // Una sola chiamata: oltre a field_data chiediamo la gerarchia
+          // campaign/adset/ad/form per l'attribuzione del lead (mostrata
+          // come pill colorata sulla card).
+          const fields = [
+            "field_data",
+            "created_time",
+            "campaign_id",
+            "campaign_name",
+            "adset_id",
+            "adset_name",
+            "ad_id",
+            "ad_name",
+            "form_id",
+          ].join(",");
+          const url = `https://graph.facebook.com/v18.0/${leadgen_id}?fields=${fields}&access_token=${workshop.fb_page_access_token}`;
           const res = await fetch(url);
           if (res.ok) {
             const json: FbLeadResponse = await res.json();
@@ -139,11 +160,33 @@ export async function POST(req: NextRequest) {
               else if (name.includes("email")) email = v;
               else if (name.includes("message") || name.includes("note")) message = v;
             }
+            campaignId = json.campaign_id ?? null;
+            campaignName = json.campaign_name ?? null;
+            adsetId = json.adset_id ?? null;
+            adsetName = json.adset_name ?? null;
+            adId = json.ad_id ?? null;
+            adName = json.ad_name ?? null;
           } else {
             console.error("[fb-webhook] Graph API error:", res.status, await res.text());
           }
         } catch (err) {
           console.error("[fb-webhook] Fetch lead failed:", err);
+        }
+      }
+
+      // form_name richiede una chiamata separata su /{form_id}: il
+      // nome del form e' usato spesso come fallback quando non c'e'
+      // una campagna nominata (es. lead da pagina organica).
+      if (form_id && workshop.fb_page_access_token) {
+        try {
+          const formUrl = `https://graph.facebook.com/v18.0/${form_id}?fields=name&access_token=${workshop.fb_page_access_token}`;
+          const formRes = await fetch(formUrl);
+          if (formRes.ok) {
+            const formJson: { name?: string } = await formRes.json();
+            formName = formJson.name ?? null;
+          }
+        } catch (err) {
+          console.error("[fb-webhook] Fetch form name failed:", err);
         }
       }
 
@@ -157,6 +200,13 @@ export async function POST(req: NextRequest) {
         status: "nuovo",
         fb_lead_id: leadgen_id,
         fb_form_id: form_id,
+        campaign_id: campaignId,
+        campaign_name: campaignName,
+        adset_id: adsetId,
+        adset_name: adsetName,
+        ad_id: adId,
+        ad_name: adName,
+        form_name: formName,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         raw_payload: rawPayload as any,
       });
@@ -193,4 +243,11 @@ interface FbLeadResponse {
   id: string;
   created_time?: string;
   field_data?: Array<{ name: string; values: string[] }>;
+  campaign_id?: string;
+  campaign_name?: string;
+  adset_id?: string;
+  adset_name?: string;
+  ad_id?: string;
+  ad_name?: string;
+  form_id?: string;
 }

@@ -19,6 +19,31 @@ const STATUS_ACCENT: Record<LeadStatus, string> = {
   perso: "bg-neutral-500/15 text-neutral-400",
 };
 
+// Palette per la pill della campagna FB. Le classi sono scritte
+// per intero (non concatenate) cosi' Tailwind JIT le scopre.
+const CAMPAIGN_PALETTE = [
+  "bg-blue-500/15 text-blue-300",
+  "bg-emerald-500/15 text-emerald-300",
+  "bg-amber-500/15 text-amber-300",
+  "bg-pink-500/15 text-pink-300",
+  "bg-violet-500/15 text-violet-300",
+  "bg-cyan-500/15 text-cyan-300",
+  "bg-rose-500/15 text-rose-300",
+  "bg-orange-500/15 text-orange-300",
+  "bg-teal-500/15 text-teal-300",
+  "bg-fuchsia-500/15 text-fuchsia-300",
+];
+
+// Hash deterministico: stessa campagna -> stesso colore (anche tra
+// reload). Normalizzo case/spazi cosi' varianti minime ("Estate 49 "
+// vs "estate 49") non finiscono in colori diversi.
+function campaignColor(name: string): string {
+  const key = name.trim().toLowerCase();
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0;
+  return CAMPAIGN_PALETTE[Math.abs(h) % CAMPAIGN_PALETTE.length];
+}
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60_000);
@@ -44,8 +69,11 @@ export function LeadCard({ lead, onClick }: Props) {
   };
 
   const isFromFb = lead.source === "facebook";
-  const isRecent =
-    Date.now() - new Date(lead.created_at).getTime() < 24 * 60 * 60 * 1000;
+  const isRecent = Date.now() - new Date(lead.created_at).getTime() < 24 * 60 * 60 * 1000;
+  // Etichetta di attribuzione: preferiamo il nome campagna; se manca
+  // (lead organico o pre-migration) ripieghiamo sul form. Lead manuali
+  // restano senza pill.
+  const campaignLabel = lead.campaign_name ?? lead.form_name ?? null;
 
   return (
     <div
@@ -90,6 +118,20 @@ export function LeadCard({ lead, onClick }: Props) {
               </span>
             )}
           </div>
+
+          {campaignLabel && (
+            <div className="mt-1">
+              <span
+                className={cn(
+                  "inline-block max-w-full text-[10px] font-medium px-1.5 py-0.5 rounded leading-tight truncate",
+                  campaignColor(campaignLabel)
+                )}
+                title={campaignLabel}
+              >
+                {campaignLabel}
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 mt-1">
             {lead.phone && (
