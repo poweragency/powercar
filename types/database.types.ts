@@ -1162,7 +1162,10 @@ export type Database = {
       };
       current_workshop_id: { Args: never; Returns: string };
       delete_lead_cascade: { Args: { p_lead_id: string }; Returns: undefined };
-      get_dashboard_stats: { Args: { p_days?: number }; Returns: Json };
+      get_dashboard_stats: {
+        Args: { p_from: string; p_to: string };
+        Returns: Json;
+      };
       is_admin: { Args: never; Returns: boolean };
       is_owner: { Args: never; Returns: boolean };
       next_phase: {

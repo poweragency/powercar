@@ -27,11 +27,19 @@ import type { CaseStatus } from "@/types/database.types";
 import { Sparkline } from "@/components/dashboard/Sparkline";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { StatusDonut } from "@/components/dashboard/StatusDonut";
+import { DashboardRangePicker } from "@/components/dashboard/DashboardRangePicker";
 
-// Revalidate ogni 30s: dashboard non deve essere strettamente real-time
-export const revalidate = 30;
+// Dinamica: i dati dipendono dall'intervallo scelto (searchParams).
+export const dynamic = "force-dynamic";
 
-const DAYS_WINDOW = 30;
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+}
+function isYmd(s: string | undefined): s is string {
+  return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
 
 interface DashboardStats {
   leads_total: number;
@@ -48,7 +56,18 @@ interface DashboardStats {
   status_counts: Partial<Record<CaseStatus, number>>;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const sp = await searchParams;
+  const now = new Date();
+  const defFrom = new Date();
+  defFrom.setDate(defFrom.getDate() - 29);
+  const from = isYmd(sp.from) ? sp.from : ymd(defFrom);
+  const to = isYmd(sp.to) ? sp.to : ymd(now);
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -68,7 +87,7 @@ export default async function DashboardPage() {
       )
       .eq("id", user!.id)
       .single(),
-    supabase.rpc("get_dashboard_stats", { p_days: DAYS_WINDOW }),
+    supabase.rpc("get_dashboard_stats", { p_from: from, p_to: to }),
     supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(5),
     supabase
       .from("cases")
@@ -119,7 +138,7 @@ export default async function DashboardPage() {
 
   const statCards = [
     {
-      label: "Lead totali",
+      label: "Lead",
       value: stats.leads_total ?? 0,
       icon: KanbanSquare,
       color: "text-status-info",
@@ -127,7 +146,7 @@ export default async function DashboardPage() {
       data: leadsSpark,
     },
     {
-      label: "Clienti totali",
+      label: "Clienti",
       value: stats.customers_total ?? 0,
       icon: Users,
       color: "text-status-success",
@@ -181,17 +200,20 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Ciao, {greetingName} 👋</h1>
-        <p className="text-sm text-text-muted mt-1">
-          {totalCases === 0
-            ? "Iniziamo: aggiungi il primo lead o crea una pratica manuale."
-            : `Hai ${stats.open_cases_total ?? 0} pratiche aperte${
-                todayAppointmentsCount > 0
-                  ? ` e ${todayAppointmentsCount} ${todayAppointmentsCount === 1 ? "appuntamento" : "appuntamenti"} oggi`
-                  : ""
-              }.`}
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold">Ciao, {greetingName} 👋</h1>
+          <p className="text-sm text-text-muted mt-1">
+            {totalCases === 0
+              ? "Iniziamo: aggiungi il primo lead o crea una pratica manuale."
+              : `Hai ${stats.open_cases_total ?? 0} pratiche aperte${
+                  todayAppointmentsCount > 0
+                    ? ` e ${todayAppointmentsCount} ${todayAppointmentsCount === 1 ? "appuntamento" : "appuntamenti"} oggi`
+                    : ""
+                }.`}
+          </p>
+        </div>
+        <DashboardRangePicker from={from} to={to} />
       </div>
 
       {showOnboarding && <OnboardingGuide profileDone={profileDone} fbDone={fbDone} />}
@@ -230,9 +252,7 @@ export default async function DashboardPage() {
                 <div className="text-2xl font-semibold tabular-nums mt-0.5">
                   {formatCurrency(revenue)}
                 </div>
-                <div className="text-[11px] text-text-subtle">
-                  Somma di tutte le pratiche
-                </div>
+                <div className="text-[11px] text-text-subtle">Pratiche del periodo</div>
               </div>
               <TrendingUp
                 className="w-5 h-5 text-accent ml-auto shrink-0"
@@ -254,7 +274,7 @@ export default async function DashboardPage() {
                   {formatCurrency(collected)}
                 </div>
                 <div className="text-[11px] text-text-subtle">
-                  Solo pratiche liquidate
+                  Pratiche liquidate del periodo
                 </div>
               </div>
               <CheckCircle2
