@@ -72,8 +72,12 @@ export function DashboardRangePicker({ from, to }: Props) {
           type="date"
           value={from}
           max={to}
+          onKeyDown={(e) => {
+            if (e.key !== "Tab") e.preventDefault();
+          }}
+          onPaste={(e) => e.preventDefault()}
           onChange={(e) => e.target.value && apply(e.target.value, to)}
-          className="input-base w-[8.5rem] py-1.5"
+          className="input-base w-[8.5rem] py-1.5 cursor-pointer"
           aria-label="Data inizio"
         />
         <span className="text-text-subtle text-xs">→</span>
@@ -82,8 +86,12 @@ export function DashboardRangePicker({ from, to }: Props) {
           value={to}
           min={from}
           max={todayStr}
+          onKeyDown={(e) => {
+            if (e.key !== "Tab") e.preventDefault();
+          }}
+          onPaste={(e) => e.preventDefault()}
           onChange={(e) => e.target.value && apply(from, e.target.value)}
-          className="input-base w-[8.5rem] py-1.5"
+          className="input-base w-[8.5rem] py-1.5 cursor-pointer"
           aria-label="Data fine"
         />
       </div>

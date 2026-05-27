@@ -1,16 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import {
-  CASE_STATUS_COLORS,
-  CASE_STATUS_LABELS,
-  LEAD_STATUS_LABELS,
-} from "@/lib/constants";
-import {
-  formatCurrency,
-  formatDateTime,
-  formatTime,
-  initials,
-  todayBoundsInRome,
-} from "@/lib/utils";
+import { formatCurrency, formatTime, todayBoundsInRome } from "@/lib/utils";
 import {
   KanbanSquare,
   Users,
@@ -73,41 +62,27 @@ export default async function DashboardPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [
-    { data: profile },
-    { data: statsJson },
-    { data: latestLeads },
-    { data: latestCases },
-    { data: todayAppointments },
-  ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(
-        "full_name, role, workshop:workshops(name, vat_number, address, iban, fb_page_id)"
-      )
-      .eq("id", user!.id)
-      .single(),
-    supabase.rpc("get_dashboard_stats", { p_from: from, p_to: to }),
-    supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(5),
-    supabase
-      .from("cases")
-      .select(
-        "id, status, price, created_at, customers(full_name), vehicles(make, model, plate)"
-      )
-      .is("archived_at", null)
-      .order("created_at", { ascending: false })
-      .limit(5),
-    (() => {
-      const { start, end } = todayBoundsInRome();
-      return supabase
-        .from("appointments")
-        .select("id, title, starts_at, kind")
-        .gte("starts_at", start)
-        .lte("starts_at", end)
-        .order("starts_at", { ascending: true })
-        .limit(5);
-    })(),
-  ]);
+  const [{ data: profile }, { data: statsJson }, { data: todayAppointments }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "full_name, role, workshop:workshops(name, vat_number, address, iban, fb_page_id)"
+        )
+        .eq("id", user!.id)
+        .single(),
+      supabase.rpc("get_dashboard_stats", { p_from: from, p_to: to }),
+      (() => {
+        const { start, end } = todayBoundsInRome();
+        return supabase
+          .from("appointments")
+          .select("id, title, starts_at, kind")
+          .gte("starts_at", start)
+          .lte("starts_at", end)
+          .order("starts_at", { ascending: true })
+          .limit(5);
+      })(),
+    ]);
 
   const stats = (statsJson ?? {}) as unknown as DashboardStats;
 
@@ -123,6 +98,7 @@ export default async function DashboardPage({
     preparazione: 0,
     verniciatura: 0,
     finitura: 0,
+    controllo_titolare: 0,
     completata: 0,
     consegnata: 0,
     liquidato: 0,
@@ -354,105 +330,6 @@ export default async function DashboardPage({
           </div>
         </div>
       )}
-
-      {/* Ultimi lead + pratiche */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="card overflow-hidden hover:shadow-card-hover transition-all">
-          <div className="px-5 py-3 border-b border-border flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Ultimi lead</h2>
-            <Link
-              href="/leads"
-              className="text-xs text-accent hover:underline inline-flex items-center gap-1"
-            >
-              Tutti <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="divide-y divide-border">
-            {latestLeads && latestLeads.length > 0 ? (
-              latestLeads.map((lead) => (
-                <div
-                  key={lead.id}
-                  className="px-5 py-3 hover:bg-bg-hover transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-status-info/20 text-status-info text-[11px] font-medium flex items-center justify-center shrink-0">
-                      {initials(lead.full_name)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">{lead.full_name}</div>
-                      <div className="text-xs text-text-subtle mt-0.5 truncate">
-                        {lead.phone ?? "—"} · {formatDateTime(lead.created_at)}
-                      </div>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-bg-hover text-text-muted shrink-0">
-                      {LEAD_STATUS_LABELS[lead.status]}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="px-5 py-8 text-center text-sm text-text-subtle">
-                Nessun lead ancora.
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="card overflow-hidden hover:shadow-card-hover transition-all">
-          <div className="px-5 py-3 border-b border-border flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Ultime pratiche</h2>
-            <Link
-              href="/cases"
-              className="text-xs text-accent hover:underline inline-flex items-center gap-1"
-            >
-              Tutte <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="divide-y divide-border">
-            {latestCases && latestCases.length > 0 ? (
-              latestCases.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/cases/${c.id}`}
-                  className="block px-5 py-3 hover:bg-bg-hover transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-accent/20 text-accent text-[11px] font-medium flex items-center justify-center shrink-0">
-                      {initials(c.customers?.full_name ?? "?")}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">
-                        {c.customers?.full_name ?? "—"}
-                      </div>
-                      <div className="text-xs text-text-subtle mt-0.5 truncate">
-                        {[c.vehicles?.make, c.vehicles?.model, c.vehicles?.plate]
-                          .filter(Boolean)
-                          .join(" · ") || "Auto non specificata"}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span
-                        className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                          CASE_STATUS_COLORS[c.status].bg
-                        } ${CASE_STATUS_COLORS[c.status].text}`}
-                      >
-                        {CASE_STATUS_LABELS[c.status]}
-                      </span>
-                      <div className="text-xs font-medium tabular-nums mt-1">
-                        {formatCurrency(c.price)}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="px-5 py-8 text-center text-sm text-text-subtle">
-                Nessuna pratica ancora.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

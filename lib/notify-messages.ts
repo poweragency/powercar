@@ -9,6 +9,8 @@ export const CASE_NOTIFY_MESSAGES: Record<CaseStatus, string> = {
     "Il Suo veicolo è in cabina per la verniciatura. Le scriveremo non appena la fase sarà completata.",
   finitura:
     "Il Suo veicolo è in fase di finitura (lucidatura e controlli qualità). Manca poco al ritiro.",
+  controllo_titolare:
+    "Il Suo veicolo ha completato la lavorazione ed è in fase di controllo qualità finale. La avviseremo appena sarà pronto per il ritiro.",
   completata:
     "La riparazione del Suo veicolo è completata. Può venire a ritirarlo negli orari di apertura dell'officina.",
   consegnata:

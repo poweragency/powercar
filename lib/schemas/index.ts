@@ -103,6 +103,7 @@ export const caseStatusEnum = z.enum([
   "preparazione",
   "verniciatura",
   "finitura",
+  "controllo_titolare",
   "completata",
   "consegnata",
   "liquidato",

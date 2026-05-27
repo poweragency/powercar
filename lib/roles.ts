@@ -32,11 +32,12 @@ const ROLE_PHASE: Record<EmployeeRole, CaseStatus> = {
   finitore: "finitura",
 };
 
-// fase di produzione → fase successiva (oltre la finitura → completata)
+// fase di produzione → fase successiva (la finitura va al controllo del titolare)
 const NEXT_PHASE: Partial<Record<CaseStatus, CaseStatus>> = {
   preparazione: "verniciatura",
   verniciatura: "finitura",
-  finitura: "completata",
+  finitura: "controllo_titolare",
+  controllo_titolare: "completata",
 };
 
 // fase di produzione → colonne "check" su cases

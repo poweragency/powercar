@@ -8,6 +8,7 @@ const COLORS: Record<CaseStatus, string> = {
   preparazione: "rgb(var(--chart-5))",
   verniciatura: "rgb(var(--status-warning))",
   finitura: "rgb(var(--status-info))",
+  controllo_titolare: "rgb(167 139 250)",
   completata: "rgb(var(--status-success))",
   consegnata: "rgb(var(--accent))",
   liquidato: "rgb(34 211 238)",

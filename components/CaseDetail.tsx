@@ -126,12 +126,13 @@ export function CaseDetail({
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
-  // Controllo finale del titolare: obbligatorio prima di completare una pratica
-  // ancora in produzione (preparazione/verniciatura/finitura).
+  // Controllo finale del titolare: la pratica resta in "controllo_titolare"
+  // (il finitore ha finito) finché il titolare non spunta il controllo, che la
+  // porta a "completata".
   const [manualCheck, setManualCheck] = useState(false);
   const canSeePostProduction = isAdmin || role === "owner";
   const requireOwnerCheck =
-    canSeePostProduction && CASE_PRODUCTION_STATUSES.includes(caseData.status);
+    canSeePostProduction && caseData.status === "controllo_titolare";
 
   useUnsavedChangesWarning(dirty);
 
@@ -356,6 +357,12 @@ export function CaseDetail({
           ownerChecked={manualCheck}
           onOwnerCheckChange={(v) => {
             setManualCheck(v);
+            // Spuntare il controllo porta la pratica a "completata"; togliendolo
+            // torna in "controllo_titolare".
+            setCaseForm((f) => ({
+              ...f,
+              status: v ? "completata" : "controllo_titolare",
+            }));
             setDirty(true);
           }}
           onChange={(s) => {

@@ -1192,6 +1192,7 @@ export type Database = {
         | "preparazione"
         | "verniciatura"
         | "finitura"
+        | "controllo_titolare"
         | "completata"
         | "consegnata"
         | "liquidato";
@@ -1349,6 +1350,7 @@ export const Constants = {
         "preparazione",
         "verniciatura",
         "finitura",
+        "controllo_titolare",
         "completata",
         "consegnata",
         "liquidato",
