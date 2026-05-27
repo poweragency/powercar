@@ -170,7 +170,7 @@ export function CasesTable({
               className="input-base w-44"
             >
               <option value="all">Tutti gli stati</option>
-              {CASE_STATUS_ORDER.map((s) => (
+              {CASE_STATUS_ORDER.filter((s) => s !== "liquidato").map((s) => (
                 <option key={s} value={s}>
                   {CASE_STATUS_LABELS[s]}
                 </option>

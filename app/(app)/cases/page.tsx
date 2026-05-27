@@ -20,10 +20,13 @@ export default async function CasesPage() {
   const role: UserRole = profile?.role ?? "owner";
 
   // L'RLS filtra già le pratiche alla fase di competenza del dipendente.
+  // Le pratiche liquidate escono dalla lista: restano nello storico del cliente
+  // (tab "Passate" in CustomerCasesPanel).
   const { data: cases } = await supabase
     .from("cases")
     .select("*, customers(id, full_name, phone, email), vehicles(make, model, plate)")
     .is("archived_at", null)
+    .neq("status", "liquidato")
     .order("created_at", { ascending: false });
 
   return <CasesTable initialCases={(cases ?? []) as CaseWithRelations[]} role={role} />;

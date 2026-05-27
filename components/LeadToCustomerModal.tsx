@@ -88,10 +88,15 @@ export function LeadToCustomerModal({ lead, onCancel, onConverted }: Props) {
       toast.error("Controlla i campi");
       return;
     }
-    // La targa è obbligatoria: non si crea un cliente senza identificare la vettura.
-    if (!result.data.plate) {
-      setErrors((e) => ({ ...e, plate: "Targa obbligatoria" }));
-      toast.error("Inserisci almeno la targa della vettura");
+    // Targa, marca e modello sono obbligatori: non si crea un cliente senza
+    // identificare la vettura.
+    const missing: Partial<Record<keyof VehicleFormInputValues, string>> = {};
+    if (!result.data.plate) missing.plate = "Targa obbligatoria";
+    if (!result.data.make) missing.make = "Marca obbligatoria";
+    if (!result.data.model) missing.model = "Modello obbligatorio";
+    if (Object.keys(missing).length > 0) {
+      setErrors((e) => ({ ...e, ...missing }));
+      toast.error("Targa, marca e modello sono obbligatori");
       return;
     }
 
@@ -145,8 +150,9 @@ export function LeadToCustomerModal({ lead, onCancel, onConverted }: Props) {
 
         <div className="px-5 pt-4">
           <p className="text-xs text-text-muted">
-            Per trasformare il lead in cliente inserisci i dati della vettura. La targa è
-            obbligatoria. Cliente e pratica verranno creati solo al salvataggio.
+            Per trasformare il lead in cliente inserisci i dati della vettura. Targa,
+            marca e modello sono obbligatori. Cliente e pratica verranno creati solo al
+            salvataggio.
           </p>
         </div>
 
@@ -180,7 +186,7 @@ export function LeadToCustomerModal({ lead, onCancel, onConverted }: Props) {
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Marca" htmlFor="lc-make" error={errors.make}>
+            <Field label="Marca *" htmlFor="lc-make" error={errors.make}>
               <input
                 id="lc-make"
                 value={values.make ?? ""}
@@ -189,7 +195,7 @@ export function LeadToCustomerModal({ lead, onCancel, onConverted }: Props) {
                 placeholder="Fiat"
               />
             </Field>
-            <Field label="Modello" htmlFor="lc-model" error={errors.model}>
+            <Field label="Modello *" htmlFor="lc-model" error={errors.model}>
               <input
                 id="lc-model"
                 value={values.model ?? ""}

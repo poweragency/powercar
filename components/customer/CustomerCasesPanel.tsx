@@ -100,7 +100,7 @@ export function CustomerCasesPanel({ cases }: { cases: CustomerCase[] }) {
               ? "Le pratiche aperte di questo cliente appariranno qui."
               : tab === "incomplete"
                 ? "Le pratiche archiviate (es. dopo l'eliminazione di un lead) appariranno qui e potranno essere riprese."
-                : "Lo storico mostra solo pratiche completate o consegnate."
+                : "Lo storico mostra pratiche completate, consegnate o liquidate."
           }
         />
       ) : (
