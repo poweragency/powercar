@@ -13,8 +13,10 @@ const OPEN_STATUSES: CaseStatus[] = [
   "verniciatura",
   "finitura",
   "controllo_titolare",
+  "completata",
+  "consegnata",
 ];
-const CLOSED_STATUSES: CaseStatus[] = ["completata", "consegnata", "liquidato"];
+const CLOSED_STATUSES: CaseStatus[] = ["liquidato"];
 
 export interface CustomerCase {
   id: string;
@@ -105,7 +107,7 @@ export function CustomerCasesPanel({ cases }: { cases: CustomerCase[] }) {
               ? "Le pratiche aperte di questo cliente appariranno qui."
               : tab === "incomplete"
                 ? "Le pratiche archiviate (es. dopo l'eliminazione di un lead) appariranno qui e potranno essere riprese."
-                : "Lo storico mostra pratiche completate, consegnate o liquidate."
+                : "Lo storico mostra solo le pratiche liquidate (incassate)."
           }
         />
       ) : (

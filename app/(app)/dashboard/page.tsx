@@ -120,6 +120,7 @@ export default async function DashboardPage({
       color: "text-status-info",
       stroke: "rgb(var(--status-info))",
       data: leadsSpark,
+      href: "/leads",
     },
     {
       label: "Clienti",
@@ -128,6 +129,7 @@ export default async function DashboardPage({
       color: "text-status-success",
       stroke: "rgb(var(--status-success))",
       data: customersSpark,
+      href: "/customers",
     },
     {
       label: "Pratiche aperte",
@@ -136,6 +138,7 @@ export default async function DashboardPage({
       color: "text-status-warning",
       stroke: "rgb(var(--status-warning))",
       data: openCasesSpark,
+      href: "/cases",
     },
     {
       label: "Pratiche completate",
@@ -341,12 +344,13 @@ type StatCard = {
   color: string;
   stroke: string;
   data: number[];
+  href?: string;
 };
 
 function KpiCard({ stat }: { stat: StatCard }) {
   const Icon = stat.icon;
-  return (
-    <div className="card p-5 hover:border-border-hover hover:shadow-card-hover transition-all">
+  const inner = (
+    <>
       <div className="flex items-center justify-between">
         <div className="text-xs uppercase tracking-wide text-text-muted">
           {stat.label}
@@ -357,8 +361,18 @@ function KpiCard({ stat }: { stat: StatCard }) {
       <div className="mt-3 -mb-1">
         <Sparkline data={stat.data} stroke={stat.stroke} />
       </div>
-    </div>
+    </>
   );
+  const className =
+    "card p-5 hover:border-border-hover hover:shadow-card-hover transition-all";
+  if (stat.href) {
+    return (
+      <Link href={stat.href} className={`${className} block`}>
+        {inner}
+      </Link>
+    );
+  }
+  return <div className={className}>{inner}</div>;
 }
 
 function OnboardingGuide({
