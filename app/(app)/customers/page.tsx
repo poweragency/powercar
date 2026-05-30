@@ -4,8 +4,17 @@ import type { CaseStatus } from "@/types/database.types";
 
 export const dynamic = "force-dynamic";
 
-const OPEN_STATUSES: CaseStatus[] = ["preparazione", "verniciatura", "finitura"];
-const CLOSED_STATUSES: CaseStatus[] = ["completata", "consegnata", "liquidato"];
+// Una pratica è "chiusa" solo quando liquidata (incassata). Tutto il resto —
+// produzione, controllo titolare, completata, consegnata — resta "in corso".
+const OPEN_STATUSES: CaseStatus[] = [
+  "preparazione",
+  "verniciatura",
+  "finitura",
+  "controllo_titolare",
+  "completata",
+  "consegnata",
+];
+const CLOSED_STATUSES: CaseStatus[] = ["liquidato"];
 
 export interface CustomerRow {
   id: string;
