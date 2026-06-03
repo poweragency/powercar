@@ -2,6 +2,10 @@
 
 CRM multi-tenant per officine/carrozzerie. Gestione lead da Facebook Ads → Kanban → cliente → pratica officina → preventivi/fatture → consegna.
 
+> 🔒 **Sicurezza:** i punti aperti e le cose da configurare (env var di produzione,
+> reinstall dipendenze, migliorie) sono tracciati in **[TODO-SICUREZZA.md](TODO-SICUREZZA.md)**.
+> Leggilo prima di mettere in produzione o se sei un nuovo collaboratore.
+
 ## Stack
 
 - **Next.js 15** (App Router, Server Components, Server Actions)
@@ -45,9 +49,13 @@ Copia `.env.example` in `.env.local` e compila:
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Settings → API → Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API → `anon`/`publishable` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → `service_role` (**server only**) |
-| `FB_APP_SECRET` | Meta App → Settings → Basic → App Secret |
+| `FB_APP_SECRET` | Meta App → Settings → Basic → App Secret — **obbligatoria**: senza, il webhook FB rifiuta le richieste (fail-closed) |
 | `RESEND_API_KEY` | resend.com → API Keys (opzionale, per inviare email reali) |
 | `RESEND_FROM_EMAIL` | Mittente verificato Resend (es. `Officina <noreply@dominio.it>`) |
+| `UPSTASH_REDIS_REST_URL` | console.upstash.com → DB → REST (opzionale: rate limiting distribuito; senza, fallback in-memory) |
+| `UPSTASH_REDIS_REST_TOKEN` | console.upstash.com → DB → REST token (opzionale, vedi sopra) |
+
+> Dettagli su quali env var attivare in produzione: vedi **[TODO-SICUREZZA.md](TODO-SICUREZZA.md)**.
 
 ### 3. Database
 
