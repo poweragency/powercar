@@ -48,17 +48,16 @@ Pagina.
 
 ### ⚠️ Cosa deve fare l'operatore (manuale)
 
-- [ ] **Deploy del codice.** Le modifiche DB sono **già applicate al DB di
-  produzione** (Supabase, oggi). Il codice corrispondente
-  (`SettingsForm.tsx`, `settings/page.tsx`, `types/database.types.ts`) va
-  **deployato** perché il salvataggio Impostazioni torni a funzionare: con il vecchio
-  codice ancora online, il salvataggio dell'owner fallirebbe (scriveva un token su una
-  colonna di `profiles` che ora non esiste più). → Fai il deploy (push su `main`).
-- [ ] **Migration nel repo già pronta:**
+- [x] **Deploy del codice.** ✅ Live su Vercel (auto-deploy da `main`). Smoke HTTP 200
+  su `/login` confermato 2026-06-03.
+- [x] **Migration nel repo già pronta:**
   `supabase/migrations/20260603120000_fix_audit_profiles_guard_and_fb_token.sql`.
-  Il DB live è già patchato (applicata via MCP). La migration è **idempotente**:
-  un eventuale `supabase db push` futuro la ri-applica senza danni.
-- [ ] **Token FB già impostati restano validi** (non sono stati toccati, solo nascosti
+  Il DB live è già patchato (applicata via MCP, **riverificata via MCP il 2026-06-03**:
+  trigger `trg_guard_profile_cols` presente, colonne legacy rimosse da `profiles`,
+  RPC `get_workshop_fb_secrets()` presente, SELECT su `fb_*_token` solo a
+  `postgres`/`service_role`). La migration è **idempotente**: un eventuale
+  `supabase db push` futuro la ri-applica senza danni.
+- [x] **Token FB già impostati restano validi** (non sono stati toccati, solo nascosti
   alla lettura). Nessun owner deve re-inserire il token, a meno che non voglia
   cambiarlo. Il campo ora mostra `•••••••• (già impostato)`.
 - [ ] (Verifica facoltativa) Dopo il deploy, da owner: apri **Impostazioni → guida FB**
@@ -73,17 +72,20 @@ I fix sono nel codice, ma **alcuni si attivano solo se le variabili sono imposta
 nell'ambiente di produzione. Senza queste, il comportamento è più debole (o, per il
 webhook, bloccato di proposito).
 
-- [ ] **`FB_APP_SECRET`** — App Secret di Meta. **Obbligatoria.**
-  Da quando è attivo il fix #2, il webhook Facebook **rifiuta tutte le richieste**
-  (HTTP 500) se questa var non è impostata. Senza, i lead da Facebook NON entrano.
-  → Meta for Developers → la tua App → Impostazioni → Di base → "Chiave segreta".
+- [ ] **`FB_APP_SECRET`** — App Secret di Meta. **Obbligatoria** se ricevi lead da
+  Meta Ads. Da quando è attivo il fix #2, il webhook Facebook **rifiuta tutte le
+  richieste** (HTTP 500) se questa var non è impostata: senza, i lead da Facebook NON
+  entrano. → Meta for Developers → la tua App → Impostazioni → Di base → "Chiave
+  segreta". _(Rimandato dall'owner il 2026-06-03 — da fare prima di rimettere live
+  campagne Meta.)_
 
-- [ ] **`UPSTASH_REDIS_REST_URL`** + **`UPSTASH_REDIS_REST_TOKEN`** — rate limiting distribuito.
-  Senza, il rate limit resta in-memory per-istanza (fallback automatico, non si rompe
-  nulla, ma su Vercel serverless è poco efficace).
-  → Crea un DB gratuito su <https://console.upstash.com/> → copia URL e token REST.
+- [x] **`UPSTASH_REDIS_REST_URL`** + **`UPSTASH_REDIS_REST_TOKEN`** — rate limiting
+  distribuito. ✅ Configurate su Vercel (Production) + redeploy effettuato il
+  2026-06-03 (smoke prod HTTP 200 dopo redeploy). DB Redis free tier creato su
+  Upstash. Ricorda: le stesse credenziali **non vanno tenute in `.env.local`** per non
+  condividere counter dev↔prod; in locale il fallback in-memory basta.
 
-- [ ] Verificare che siano già impostate (e corrette): `SUPABASE_SERVICE_ROLE_KEY`,
+- [ ] Verificare che siano già impostate (e corrette) in Vercel: `SUPABASE_SERVICE_ROLE_KEY`,
   `RESEND_API_KEY`, `RESEND_FROM_EMAIL`.
 
 > ℹ️ All'avvio il server logga un warning con l'elenco delle var opzionali mancanti
@@ -102,6 +104,8 @@ repo in locale deve **reinstallare** per allinearsi:
   npm install
   ```
   (scaricherà `xlsx` dalla CDN SheetJS — è normale, è il metodo raccomandato dagli autori).
+  _PC owner (Mattia): ✅ fatto 2026-06-03 (`npm audit --omit=dev` → 0 vulnerabilità).
+  Mancano gli altri collaboratori._
 - [ ] In caso di problemi di rete con la CDN, il comando esplicito è:
   ```bash
   npm i https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
@@ -179,6 +183,9 @@ npm audit --omit=dev        # deve dire: found 0 vulnerabilities
 - ✅ **Privilege escalation `profiles` chiusa** (trigger `trg_guard_profile_cols`):
   `role`/`workshop_id` non sono auto-modificabili dall'utente (2026-06-03).
 - ✅ **Token FB nascosto ai dipendenti** + write-only nel form (2026-06-03).
+- ✅ **Upstash Redis attivo in produzione** (`UPSTASH_REDIS_REST_URL`/`_TOKEN`
+  configurate su Vercel + redeploy, 2026-06-03): rate-limit ora condiviso tra le
+  istanze serverless, niente più counter "fasulli" per-istanza.
 
 > Già solido prima dell'audit (da non rompere): RLS su tutte le tabelle, isolamento
 > multi-tenant via `workshop_id`, middleware default-deny, `getUser()` server-side,
