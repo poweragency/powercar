@@ -1,10 +1,69 @@
 # 🔒 TODO Sicurezza
 
 Cose **ancora da fare** emerse dall'audit di sicurezza. I fix già applicati sono
-nel commit `e6c67ff` (`fix(sicurezza): hardening da audit ...`).
+nel commit `e6c67ff` (`fix(sicurezza): hardening da audit ...`) e nel secondo giro
+di audit del **2026-06-03** (vedi sezione 0 qui sotto).
 
 > Legenda priorità: 🔴 da fare subito · 🟡 a breve · 🟢 quando capita
 > Aggiorna la casella `[ ]` → `[x]` quando completi un punto.
+
+---
+
+## 0. ✅ Secondo giro di audit (2026-06-03) — 2 falle GRAVI chiuse
+
+Un secondo audit ha trovato **due buchi di controllo accessi** che il primo giro
+non aveva intercettato. **Entrambi già corretti** (codice + DB). Riepilogo + cosa
+deve fare manualmente l'operatore.
+
+### 0.1 🔴→✅ CRITICO — Privilege escalation via `profiles`
+
+**Il problema:** la policy RLS `profiles_update_own` lasciava modificare la propria
+riga senza restrizione di colonna, e nessun trigger proteggeva `role`/`workshop_id`.
+Un dipendente, dalla console del browser, poteva fare
+`supabase.from('profiles').update({ role: 'owner' })` e diventare titolare (oppure
+spostarsi in un altro workshop con `update({ workshop_id })`).
+
+**Il fix:** trigger DB `trg_guard_profile_cols` (funzione
+`guard_profile_privileged_cols`) che **blocca** ogni modifica a `role`/`workshop_id`
+fatta da un utente loggato. Il `service_role` (route `/api/admin/*` e `/api/team/*`,
+che cambiano la mansione) ha `auth.uid()` NULL e resta libero.
+Testato sul DB: escalation bloccata ✅, cambio mansione legittimo da `/team` ok ✅.
+
+### 0.2 🔴→✅ ALTO — Token Facebook leggibile dai dipendenti
+
+**Il problema:** `fb_page_access_token` (Page Access Token Meta) e `fb_verify_token`
+erano leggibili da **qualsiasi** membro del workshop, anche i dipendenti
+(RLS non filtra per colonna). Esposizione reale: 2 workshop con token salvato,
+4 dipendenti. Un dipendente poteva leggere il token e leggere i lead / agire come la
+Pagina.
+
+**Il fix:**
+- rimosse le copie legacy dei token da `profiles` (la fonte di verità è `workshops`);
+- revocata la `SELECT` di tabella su `workshops` e ri-concessa **solo sulle colonne
+  non sensibili** (i token restano leggibili solo dal `service_role`/webhook);
+- il **page access token è ora write-only** nel form Impostazioni: non viene più
+  mostrato; l'owner lo re-inserisce solo se vuole cambiarlo;
+- il `verify_token` (serve all'owner per configurare il webhook Meta) si legge da una
+  RPC owner-only `get_workshop_fb_secrets()`.
+
+### ⚠️ Cosa deve fare l'operatore (manuale)
+
+- [ ] **Deploy del codice.** Le modifiche DB sono **già applicate al DB di
+  produzione** (Supabase, oggi). Il codice corrispondente
+  (`SettingsForm.tsx`, `settings/page.tsx`, `types/database.types.ts`) va
+  **deployato** perché il salvataggio Impostazioni torni a funzionare: con il vecchio
+  codice ancora online, il salvataggio dell'owner fallirebbe (scriveva un token su una
+  colonna di `profiles` che ora non esiste più). → Fai il deploy (push su `main`).
+- [ ] **Migration nel repo già pronta:**
+  `supabase/migrations/20260603120000_fix_audit_profiles_guard_and_fb_token.sql`.
+  Il DB live è già patchato (applicata via MCP). La migration è **idempotente**:
+  un eventuale `supabase db push` futuro la ri-applica senza danni.
+- [ ] **Token FB già impostati restano validi** (non sono stati toccati, solo nascosti
+  alla lettura). Nessun owner deve re-inserire il token, a meno che non voglia
+  cambiarlo. Il campo ora mostra `•••••••• (già impostato)`.
+- [ ] (Verifica facoltativa) Dopo il deploy, da owner: apri **Impostazioni → guida FB**
+  e controlla che il **Verify Token** sia mostrato correttamente (arriva dalla nuova
+  RPC) e che salvare i dati fiscali funzioni.
 
 ---
 
@@ -86,10 +145,10 @@ quindi non sono urgenti. Riguardano solo il dev server locale.
 
 Non sono vulnerabilità sfruttabili oggi, ma alzano l'asticella.
 
-- [ ] **Token FB nel form Settings** (`components/SettingsForm.tsx`): il
-  `fb_page_access_token` viene caricato e re-inviato dal client. È protetto da RLS
-  (solo l'owner del proprio workshop lo vede), ma valutare un campo "write-only"
-  (mostra `••••`, invia solo se modificato) per non esporlo nel traffico/DevTools.
+- [x] **Token FB nel form Settings** — ✅ FATTO il 2026-06-03 (vedi sez. 0.2). Il
+  campo è ora write-only e il token non è più leggibile né dal client né dai
+  dipendenti. (La nota originale sottostimava il rischio: il token era leggibile da
+  TUTTI i membri del workshop, non solo dall'owner.)
 - [ ] **Token nell'URL Graph API** (`app/api/webhooks/facebook/route.ts`): l'
   `access_token` è in query string; in caso di errore loggato potrebbe finire nei
   log server. Valutare di non loggare il body grezzo della risposta Graph.
@@ -117,6 +176,9 @@ npm audit --omit=dev        # deve dire: found 0 vulnerabilities
 - ✅ `xlsx` su build CDN SheetJS 0.20.3.
 - ✅ Validazione env all'avvio (`instrumentation.ts`).
 - ✅ Stop leak errori grezzi su `/api/invoices` e `/api/notifications/case-status`.
+- ✅ **Privilege escalation `profiles` chiusa** (trigger `trg_guard_profile_cols`):
+  `role`/`workshop_id` non sono auto-modificabili dall'utente (2026-06-03).
+- ✅ **Token FB nascosto ai dipendenti** + write-only nel form (2026-06-03).
 
 > Già solido prima dell'audit (da non rompere): RLS su tutte le tabelle, isolamento
 > multi-tenant via `workshop_id`, middleware default-deny, `getUser()` server-side,

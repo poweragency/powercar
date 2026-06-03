@@ -12,9 +12,18 @@ import { LogoUploader } from "./LogoUploader";
 interface Props {
   initialProfile: Profile;
   userEmail: string;
+  /** Verify token del webhook FB (letto via RPC owner-only, non più dal profilo). */
+  fbVerifyToken: string;
+  /** True se un page access token è già impostato (il valore non è leggibile). */
+  hasAccessToken: boolean;
 }
 
-export function SettingsForm({ initialProfile, userEmail }: Props) {
+export function SettingsForm({
+  initialProfile,
+  userEmail,
+  fbVerifyToken,
+  hasAccessToken,
+}: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [profile, setProfile] = useState<Profile>(initialProfile);
   const [form, setForm] = useState<ProfileFormValues>({
@@ -29,7 +38,9 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
     iban: initialProfile.iban ?? null,
     invoice_prefix: initialProfile.invoice_prefix ?? "PREV",
     fb_page_id: initialProfile.fb_page_id ?? null,
-    fb_page_access_token: initialProfile.fb_page_access_token ?? null,
+    // Write-only: il token non è leggibile (hardening audit #2). Il campo parte
+    // sempre vuoto; si invia solo se l'owner ne digita uno nuovo.
+    fb_page_access_token: null,
     logo_url: initialProfile.logo_url ?? null,
   });
   const [errors, setErrors] = useState<Partial<Record<keyof ProfileFormValues, string>>>(
@@ -60,10 +71,14 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
       return;
     }
     setSaving(true);
+    // Il page access token è write-only e vive solo su workshops (non più su
+    // profiles): lo separiamo dal payload del profilo.
+    const { fb_page_access_token: fbToken, ...profilePayload } = result.data;
+
     // 1) profiles legacy (workshop_name + altri campi) — backward compat
     const { data, error } = await supabase
       .from("profiles")
-      .update(result.data)
+      .update(profilePayload)
       .eq("id", profile.id)
       .select("*, workshop_id")
       .single();
@@ -82,7 +97,12 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
         iban: result.data.iban,
         logo_url: result.data.logo_url,
         fb_page_id: result.data.fb_page_id,
-        fb_page_access_token: result.data.fb_page_access_token,
+        // Token write-only: lo scriviamo solo se l'owner ne ha inserito uno
+        // nuovo. Campo vuoto = "non modificare" (il valore esistente non è
+        // leggibile, quindi non possiamo ri-inviarlo).
+        ...(fbToken && fbToken.trim() !== ""
+          ? { fb_page_access_token: fbToken.trim() }
+          : {}),
       };
       const { error: wsError } = await supabase
         .from("workshops")
@@ -117,7 +137,7 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://TUO-DOMINIO.com";
   const webhookUrl = `${origin}/api/webhooks/facebook`;
-  const verifyToken = profile.fb_verify_token ?? "—";
+  const verifyToken = fbVerifyToken;
 
   return (
     <div className="max-w-2xl mx-auto p-8 pb-32">
@@ -297,16 +317,24 @@ export function SettingsForm({ initialProfile, userEmail }: Props) {
           />
         </Field>
 
-        <Field label="Token di accesso Pagina" error={errors.fb_page_access_token}>
+        <Field
+          label="Token di accesso Pagina"
+          error={errors.fb_page_access_token}
+          hint={
+            hasAccessToken
+              ? "Un token è già impostato. Lascia vuoto per mantenerlo; digita un nuovo token solo per sostituirlo."
+              : "Per sicurezza il token, una volta salvato, non è più leggibile."
+          }
+        >
           <input
-            type="text"
+            type="password"
             name="fb_page_access_token"
             value={form.fb_page_access_token ?? ""}
             onChange={(e) =>
               setField("fb_page_access_token", e.target.value.trim() || null)
             }
             className="input-base font-mono text-sm"
-            placeholder="EAAxxxxx..."
+            placeholder={hasAccessToken ? "•••••••• (già impostato)" : "EAAxxxxx..."}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"

@@ -840,9 +840,7 @@ export type Database = {
           city: string | null;
           country: string | null;
           created_at: string;
-          fb_page_access_token: string | null;
           fb_page_id: string | null;
-          fb_verify_token: string | null;
           full_name: string | null;
           iban: string | null;
           id: string;
@@ -863,9 +861,7 @@ export type Database = {
           city?: string | null;
           country?: string | null;
           created_at?: string;
-          fb_page_access_token?: string | null;
           fb_page_id?: string | null;
-          fb_verify_token?: string | null;
           full_name?: string | null;
           iban?: string | null;
           id: string;
@@ -886,9 +882,7 @@ export type Database = {
           city?: string | null;
           country?: string | null;
           created_at?: string;
-          fb_page_access_token?: string | null;
           fb_page_id?: string | null;
-          fb_verify_token?: string | null;
           full_name?: string | null;
           iban?: string | null;
           id?: string;
@@ -1165,6 +1159,10 @@ export type Database = {
       get_dashboard_stats: {
         Args: { p_from: string; p_to: string };
         Returns: Json;
+      };
+      get_workshop_fb_secrets: {
+        Args: never;
+        Returns: { fb_verify_token: string | null; has_access_token: boolean }[];
       };
       is_admin: { Args: never; Returns: boolean };
       is_owner: { Args: never; Returns: boolean };

@@ -24,5 +24,18 @@ export default async function SettingsPage() {
   // anche l'accesso diretto via URL.
   if (profile.role !== "owner") redirect("/dashboard");
 
-  return <SettingsForm initialProfile={profile} userEmail={user.email ?? ""} />;
+  // Il verify token (da mostrare per la config del webhook Meta) e lo stato del
+  // page access token arrivano da una RPC owner-only: i token non sono più
+  // leggibili direttamente da workshops/profiles (hardening audit #2).
+  const { data: fbSecrets } = await supabase.rpc("get_workshop_fb_secrets");
+  const secret = Array.isArray(fbSecrets) ? fbSecrets[0] : null;
+
+  return (
+    <SettingsForm
+      initialProfile={profile}
+      userEmail={user.email ?? ""}
+      fbVerifyToken={secret?.fb_verify_token ?? "—"}
+      hasAccessToken={secret?.has_access_token ?? false}
+    />
+  );
 }
