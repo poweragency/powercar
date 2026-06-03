@@ -27,6 +27,15 @@ CRM multi-tenant per officine/carrozzerie. Gestione lead da Facebook Ads → Kan
 npm install
 ```
 
+> **Windows + drive di rete (es. `Z:` mappato su `\\Pa-server\...`).**
+> `cmd.exe` non supporta i percorsi UNC come directory corrente, quindi gli hook
+> git/husky fallirebbero con _"Current directory is not a git directory!"_.
+> Lo script `postinstall` imposta automaticamente la chiave di registro
+> `HKCU\Software\Microsoft\Command Processor\DisableUNCCheck = 1` (per-utente,
+> nessun admin, reversibile) che risolve il problema alla radice.
+> Se serve rilanciarlo a mano: `npm run setup:dev`. È idempotente e su sistemi
+> non-Windows non fa nulla.
+
 ### 2. Variabili d'ambiente
 
 Copia `.env.example` in `.env.local` e compila:

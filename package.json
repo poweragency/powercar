@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "husky",
+    "postinstall": "node scripts/setup-windows-dev.mjs",
+    "setup:dev": "node scripts/setup-windows-dev.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,json,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,css}\"",
     "types": "supabase gen types typescript --project-id jconofgquajgzylcfnfg --schema public > types/database.types.ts",

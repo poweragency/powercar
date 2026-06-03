@@ -1,1 +1,22 @@
-npx lint-staged
+# Formatta i file in stage + type-check.
+#
+# NB: NON usiamo `lint-staged` qui. Quando il repo gira da un drive di rete
+# Windows (UNC, es. \\Pa-server\...), lint-staged chiede a git il toplevel
+# (che torna come //Pa-server/...) e lancia i suoi sotto-processi git con quella
+# CWD: Windows/Node la gestiscono male e fallisce con "Failed to get staged
+# files". git + prettier invocati direttamente sotto `sh` gestiscono invece
+# l'UNC senza problemi. Vedi scripts/setup-windows-dev.mjs per il fix complementare
+# (DisableUNCCheck) necessario a `npm run type-check`.
+
+# File in stage da formattare (stessi pattern della vecchia config lint-staged).
+# I pathspec sono quotati per non farli espandere dalla shell: li interpreta git.
+# -z + xargs -0 gestiscono nomi con spazi; -r salta se non c'è nulla.
+staged_files() {
+  git diff --cached --name-only --diff-filter=ACMR -z \
+    -- '*.ts' '*.tsx' '*.json' '*.css' '*.md'
+}
+
+staged_files | xargs -0 -r npx prettier --write
+staged_files | xargs -0 -r git add
+
+npm run type-check
