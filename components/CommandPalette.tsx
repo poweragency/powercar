@@ -102,29 +102,35 @@ function CommandPalette({
     let cancelled = false;
     setLoading(true);
     const handle = setTimeout(async () => {
+      // Forma parametrizzata sicura per .ilike(colonna, valore).
       const like = `%${q}%`;
+      // Per i filtri .or() l'input finisce DENTRO la stringa-grammatica di PostgREST:
+      // rimuovo i delimitatori riservati ( , ( ) " \ ) e racchiudo il valore tra
+      // virgolette doppie, così eventuali caratteri speciali residui sono letterali
+      // e l'utente non può iniettare condizioni di filtro aggiuntive.
+      const orLike = `"%${q.replace(/[,()"\\]/g, "")}%"`;
       const [leads, customers, cases, vehicles, appointments] = await Promise.all([
         supabase
           .from("leads")
           .select("id, full_name, phone, email, status")
-          .or(`full_name.ilike.${like},phone.ilike.${like},email.ilike.${like}`)
+          .or(`full_name.ilike.${orLike},phone.ilike.${orLike},email.ilike.${orLike}`)
           .limit(5),
         supabase
           .from("customers")
           .select("id, full_name, phone, email")
-          .or(`full_name.ilike.${like},phone.ilike.${like},email.ilike.${like}`)
+          .or(`full_name.ilike.${orLike},phone.ilike.${orLike},email.ilike.${orLike}`)
           .limit(5),
         supabase
           .from("cases")
           .select("id, status, customers!inner(full_name), vehicles(make, model, plate)")
-          .or(`full_name.ilike.${like},plate.ilike.${like}`, {
+          .or(`full_name.ilike.${orLike},plate.ilike.${orLike}`, {
             referencedTable: "customers",
           })
           .limit(5),
         supabase
           .from("vehicles")
           .select("id, make, model, plate, customer_id, customers(full_name)")
-          .or(`plate.ilike.${like},make.ilike.${like},model.ilike.${like}`)
+          .or(`plate.ilike.${orLike},make.ilike.${orLike},model.ilike.${orLike}`)
           .limit(5),
         supabase
           .from("appointments")
