@@ -382,9 +382,16 @@ export function CasesTable({
                           >
                             {initials(c.customers?.full_name ?? "?")}
                           </div>
-                          <span className="text-sm font-medium truncate">
-                            {c.customers?.full_name ?? "—"}
-                          </span>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {c.customers?.full_name ?? "—"}
+                            </div>
+                            {isEmployee && c.vehicles?.plate && (
+                              <div className="text-lg font-bold font-mono tracking-wider mt-0.5 truncate">
+                                {c.vehicles.plate}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-5 py-3">
