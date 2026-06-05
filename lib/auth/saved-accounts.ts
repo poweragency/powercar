@@ -44,7 +44,7 @@ function safeParse(raw: string | undefined): SavedAccount[] {
   }
 }
 
-function cookieOptions() {
+export function savedAccountsCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
@@ -53,6 +53,8 @@ function cookieOptions() {
     maxAge: COOKIE_MAX_AGE,
   };
 }
+// Alias interno (compat retrocompatibile con i call site nello stesso file).
+const cookieOptions = savedAccountsCookieOptions;
 
 /**
  * Legge il cookie e ritorna gli account salvati su questo dispositivo.
