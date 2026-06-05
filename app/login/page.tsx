@@ -5,8 +5,22 @@ import { readSavedAccountsPublic } from "@/lib/auth/saved-accounts";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
+interface Props {
+  searchParams: Promise<{ switch?: string }>;
+}
+
+const SWITCH_ERRORS: Record<string, string> = {
+  expired:
+    "Il login rapido e' scaduto. Inserisci email e password (poi puoi salvare di nuovo l'account).",
+  not_saved: "Account non piu' salvato su questo dispositivo.",
+  error: "Errore temporaneo nel passaggio account. Riprova.",
+  invalid: "Risposta non valida dal server di autenticazione.",
+};
+
+export default async function LoginPage({ searchParams }: Props) {
+  const sp = await searchParams;
   const savedAccounts = await readSavedAccountsPublic();
+  const switchError = sp.switch ? SWITCH_ERRORS[sp.switch] : null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg p-6">
@@ -28,6 +42,12 @@ export default async function LoginPage() {
               ? "Scegli un account o inserisci le credenziali."
               : "Inserisci le tue credenziali."}
           </p>
+
+          {switchError && (
+            <div className="mb-4 text-xs text-yellow-300 bg-yellow-500/10 border border-yellow-500/30 rounded-md p-2.5">
+              {switchError}
+            </div>
+          )}
 
           <SavedAccountsList accounts={savedAccounts} />
 

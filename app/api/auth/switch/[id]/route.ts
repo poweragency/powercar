@@ -8,28 +8,18 @@ import {
 // ============================================================
 // Switch all'account salvato — implementazione bare-metal.
 //
-// Perche' non usiamo supabase.auth.setSession():
-//   In un Route Handler, il listener onAuthStateChange di @supabase/ssr che
-//   propaga i cookie alla NextResponse via setAll non scatta sempre in modo
-//   affidabile per setSession con token "freschi" (gia' validi, non scaduti).
-//   Risultato: la response arriva senza Set-Cookie sb-* e l'utente non
-//   risulta autenticato sulla richiesta successiva.
+// Strategia: la chiamata e' una form POST nativa del browser (non fetch JS).
+//   - Il browser fa POST a questo endpoint.
+//   - Noi rispondiamo con 303 + Set-Cookie sb-* + Set-Cookie saved-accounts.
+//   - Il browser commit-a i cookie e segue il Location alla pagina finale.
+// Cosi' non c'e' race tra JS (window.location.href) e commit dei Set-Cookie.
 //
-// Cosa facciamo invece:
-//   1) Scambiamo il refresh token salvato col token endpoint di gotrue.
-//   2) Costruiamo a mano il cookie sb-{ref}-auth-token nel FORMATO ESATTO
-//      che @supabase/ssr (v0.5+) scrive normalmente:
-//        nome:  sb-{ref}-auth-token         (chunked .0, .1 se > 3180 bytes)
-//        valore: "base64-" + base64url(JSON.stringify(session))
-//      con i campi sessione: access_token, refresh_token, expires_at,
-//      expires_in, token_type, user.
-//   3) Scriviamo i cookie ESPLICITAMENTE su response.cookies.set con le
-//      stesse default options di @supabase/ssr: path=/, sameSite=lax,
-//      httpOnly=false (il browser client lo legge da document.cookie),
-//      secure in produzione.
-//   4) Aggiorniamo il cookie crm-saved-accounts col refresh token ruotato.
-//   5) Per sicurezza, puliamo eventuali chunk vecchi (.0..N) di una sessione
-//      precedente piu' grande.
+// Cookie sb-{ref}-auth-token scritti manualmente nello stesso formato che
+// @supabase/ssr (v0.5+) usa normalmente:
+//   nome:  sb-{ref}-auth-token              (chunked .0, .1 se > 3180 byte)
+//   valore: "base64-" + base64url(JSON.stringify(session))
+// con campi sessione: access_token, refresh_token, expires_at, expires_in,
+// token_type, user.
 // ============================================================
 
 const CHUNK_SIZE = 3180; // come @supabase/ssr/dist/module/utils/chunker.js
@@ -45,7 +35,7 @@ function stringToBase64URL(str: string): string {
 
 function supabaseAuthCookieOptions() {
   return {
-    httpOnly: false, // ssr default: il browser client deve poterlo leggere
+    httpOnly: false, // ssr default: il browser client lo legge da document.cookie
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
@@ -101,18 +91,30 @@ function chunkCookieValue(value: string): string[] {
   return chunks;
 }
 
+function redirectWith(
+  req: Request,
+  path: string,
+  cookieMutations: (res: NextResponse) => void
+): NextResponse {
+  // 303 = See Other: il browser fa GET sulla Location anche se la request
+  // originale era POST. Esattamente il flusso che vogliamo.
+  const url = new URL(path, req.url);
+  const res = NextResponse.redirect(url, { status: 303 });
+  cookieMutations(res);
+  return res;
+}
+
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  // Legge i saved-accounts direttamente dall'header Cookie della request:
-  // niente cookies() di next/headers, niente conflitto fra due sink di cookie.
   const cookieHeader = req.headers.get("cookie") ?? "";
   const savedAccounts = parseSavedAccountsFromHeader(cookieHeader);
   const saved = savedAccounts.find((a) => a.id === id);
   if (!saved) {
-    return NextResponse.json({ error: "account_not_saved" }, { status: 404 });
+    console.error("[switch] account not saved on this device", { id });
+    return redirectWith(req, "/login?switch=not_saved", () => {});
   }
 
   // 1) Scambia il refresh token col token endpoint di gotrue.
@@ -128,36 +130,28 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   });
   if (!tokenRes.ok) {
     const detailText = await tokenRes.text().catch(() => "");
-    // Rimuoviamo l'account dai salvati SOLO se il token e' invalidato per
-    // davvero (400/401). Su errori transitori (5xx/429) lasciamo intatto.
+    console.error("[switch] gotrue refresh failed", {
+      status: tokenRes.status,
+      detail: detailText.slice(0, 300),
+    });
     if (tokenRes.status === 400 || tokenRes.status === 401) {
       const rest = savedAccounts.filter((a) => a.id !== id);
-      const errRes = NextResponse.json(
-        { error: "refresh_failed", detail: detailText.slice(0, 200) },
-        { status: 401 }
-      );
-      if (rest.length === 0) {
-        errRes.cookies.set(SAVED_ACCOUNTS_COOKIE, "", {
-          ...savedAccountsCookieOptions(),
-          maxAge: 0,
-        });
-      } else {
-        errRes.cookies.set(
-          SAVED_ACCOUNTS_COOKIE,
-          JSON.stringify(rest),
-          savedAccountsCookieOptions()
-        );
-      }
-      return errRes;
+      return redirectWith(req, "/login?switch=expired", (res) => {
+        if (rest.length === 0) {
+          res.cookies.set(SAVED_ACCOUNTS_COOKIE, "", {
+            ...savedAccountsCookieOptions(),
+            maxAge: 0,
+          });
+        } else {
+          res.cookies.set(
+            SAVED_ACCOUNTS_COOKIE,
+            JSON.stringify(rest),
+            savedAccountsCookieOptions()
+          );
+        }
+      });
     }
-    return NextResponse.json(
-      {
-        error: "refresh_failed_transient",
-        status: tokenRes.status,
-        detail: detailText.slice(0, 200),
-      },
-      { status: 502 }
-    );
+    return redirectWith(req, "/login?switch=error", () => {});
   }
 
   const newSession = (await tokenRes.json()) as {
@@ -168,10 +162,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     user?: unknown;
   };
   if (!newSession.access_token || !newSession.refresh_token) {
-    return NextResponse.json({ error: "invalid_token_response" }, { status: 502 });
+    console.error("[switch] invalid gotrue payload");
+    return redirectWith(req, "/login?switch=invalid", () => {});
   }
 
-  // 2) Costruisci il payload Supabase nel formato che @supabase/ssr riconosce.
+  // 2) Costruisci il payload nel formato che @supabase/ssr riconosce.
   const expiresIn = newSession.expires_in ?? 3600;
   const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
   const sessionJson = JSON.stringify({
@@ -187,39 +182,41 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const cookieValue = "base64-" + stringToBase64URL(sessionJson);
   const cookieName = `sb-${projectRef(url)}-auth-token`;
 
-  // 3) Build response + scrivi i cookie auth.
-  const response = NextResponse.json({ ok: true, redirect: "/dashboard" });
-  const opts = supabaseAuthCookieOptions();
+  console.log("[switch] writing auth cookie", {
+    name: cookieName,
+    valueLen: cookieValue.length,
+    chunked: encodeURIComponent(cookieValue).length > CHUNK_SIZE,
+  });
 
-  const chunks = chunkCookieValue(cookieValue);
-  if (chunks.length === 1) {
-    // Singolo cookie col nome base.
-    response.cookies.set(cookieName, chunks[0], opts);
-    // Pulisci eventuali chunk vecchi (.0..4) di una sessione precedente
-    // piu' grande, altrimenti combineChunks dell'ssr leggerebbe valori misti.
-    for (let i = 0; i < 5; i++) {
-      response.cookies.set(`${cookieName}.${i}`, "", { ...opts, maxAge: 0 });
+  // 3) Redirect 303 a /dashboard con i cookie auth scritti sopra.
+  return redirectWith(req, "/dashboard", (response) => {
+    const opts = supabaseAuthCookieOptions();
+    const chunks = chunkCookieValue(cookieValue);
+
+    if (chunks.length === 1) {
+      response.cookies.set(cookieName, chunks[0], opts);
+      // Pulisci chunk vecchi (.0..4) di sessioni precedenti piu' grandi.
+      for (let i = 0; i < 5; i++) {
+        response.cookies.set(`${cookieName}.${i}`, "", { ...opts, maxAge: 0 });
+      }
+    } else {
+      chunks.forEach((c, i) => {
+        response.cookies.set(`${cookieName}.${i}`, c, opts);
+      });
+      for (let i = chunks.length; i < 8; i++) {
+        response.cookies.set(`${cookieName}.${i}`, "", { ...opts, maxAge: 0 });
+      }
+      response.cookies.set(cookieName, "", { ...opts, maxAge: 0 });
     }
-  } else {
-    chunks.forEach((c, i) => {
-      response.cookies.set(`${cookieName}.${i}`, c, opts);
-    });
-    // Pulisci chunk extra dello stato precedente (fino a 8) + il single name.
-    for (let i = chunks.length; i < 8; i++) {
-      response.cookies.set(`${cookieName}.${i}`, "", { ...opts, maxAge: 0 });
-    }
-    response.cookies.set(cookieName, "", { ...opts, maxAge: 0 });
-  }
 
-  // 4) Aggiorna il cookie saved-accounts col refresh token ruotato.
-  const updatedSaved = savedAccounts.map((a) =>
-    a.id === id ? { ...a, refresh_token: newSession.refresh_token } : a
-  );
-  response.cookies.set(
-    SAVED_ACCOUNTS_COOKIE,
-    JSON.stringify(updatedSaved),
-    savedAccountsCookieOptions()
-  );
-
-  return response;
+    // 4) Cookie saved-accounts ruotato.
+    const updatedSaved = savedAccounts.map((a) =>
+      a.id === id ? { ...a, refresh_token: newSession.refresh_token } : a
+    );
+    response.cookies.set(
+      SAVED_ACCOUNTS_COOKIE,
+      JSON.stringify(updatedSaved),
+      savedAccountsCookieOptions()
+    );
+  });
 }
