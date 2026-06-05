@@ -9,7 +9,7 @@ export async function updateSession(request: NextRequest) {
   // del vecchio utente prima che la route abbia scritto quelli del nuovo,
   // altrimenti vincono i Set-Cookie del middleware e lo switch fallisce.
   if (request.nextUrl.pathname.startsWith("/api/auth/")) {
-    return NextResponse.next({ request });
+    return NextResponse.next();
   }
 
   let supabaseResponse = NextResponse.next({ request });
