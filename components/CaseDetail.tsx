@@ -175,6 +175,8 @@ export function CaseDetail({
       status: caseForm.status,
       description: caseForm.description,
       price: caseForm.price,
+      started_at: caseForm.started_at,
+      due_at: caseForm.due_at,
     });
 
     if (!caseResult.success) {
