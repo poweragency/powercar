@@ -4,6 +4,14 @@ import { isEmployeeRole } from "@/lib/roles";
 import type { Database } from "@/types/database.types";
 
 export async function updateSession(request: NextRequest) {
+  // Early-out per gli endpoint di auth che gestiscono da soli i cookie di
+  // sessione: il middleware NON deve chiamare getUser()/refresh sui cookie
+  // del vecchio utente prima che la route abbia scritto quelli del nuovo,
+  // altrimenti vincono i Set-Cookie del middleware e lo switch fallisce.
+  if (request.nextUrl.pathname.startsWith("/api/auth/")) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
