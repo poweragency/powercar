@@ -219,6 +219,16 @@ export function CustomerImport() {
     setParsing(true);
     setDone(null);
     try {
+      // Cap di sicurezza sulla dimensione del file XLSX: oltre ~50MB il
+      // parser sincrono di SheetJS può saturare la heap del browser
+      // (alcuni utenti hanno crashato il tab con file ~80MB).
+      const MAX_FILE_BYTES = 50 * 1024 * 1024;
+      if (file.size > MAX_FILE_BYTES) {
+        toast.error("File troppo grande", {
+          description: `Massimo 50MB (questo file: ${(file.size / 1024 / 1024).toFixed(1)}MB). Dividi il file in più export.`,
+        });
+        return;
+      }
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { cellDates: true });
       const sheet = wb.Sheets[wb.SheetNames[0]];
@@ -231,7 +241,27 @@ export function CustomerImport() {
       setHeaders(hdrs);
       setRows(json);
       setFileName(file.name);
-      toast.success(`${json.length} righe lette da ${file.name}`);
+      // Warning soft sopra 5k righe: l'import resta possibile ma diventa
+      // lento (insert in batch da 50) e usa più memoria browser. Sopra 50k
+      // righe consigliamo di splittare il file.
+      if (json.length > 50_000) {
+        toast.warning(`${json.length.toLocaleString("it-IT")} righe lette`, {
+          description:
+            "File molto grande: l'import richiederà diversi minuti e potrebbe esaurire la memoria. Considera di dividere l'export in più file.",
+          duration: 8000,
+        });
+      } else if (json.length > 5_000) {
+        toast.warning(
+          `${json.length.toLocaleString("it-IT")} righe lette da ${file.name}`,
+          {
+            description:
+              "File grande: l'import procederà a batch di 50 righe. Non chiudere la pagina durante l'operazione.",
+            duration: 6000,
+          }
+        );
+      } else {
+        toast.success(`${json.length} righe lette da ${file.name}`);
+      }
     } catch (err) {
       toast.error("Impossibile leggere il file", {
         description: err instanceof Error ? err.message : "Errore sconosciuto",
@@ -284,7 +314,7 @@ export function CustomerImport() {
   const previewCols = matchedCols.slice(0, 8);
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
+    <div className="max-w-5xl mx-auto p-3 sm:p-6 lg:p-8">
       <div className="mb-6">
         <Breadcrumb
           items={[

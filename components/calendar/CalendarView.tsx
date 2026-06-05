@@ -179,7 +179,7 @@ export function CalendarView({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-8 py-4 border-b border-border flex items-center gap-3">
+      <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-border flex items-center gap-2 sm:gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold">Calendario</h1>
           <p className="text-xs text-text-subtle">
@@ -198,7 +198,7 @@ export function CalendarView({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Cerca per titolo o cliente..."
-              className="input-base pl-8 w-56"
+              className="input-base pl-8 w-full sm:w-56"
             />
           </div>
           <div className="flex items-center gap-1 bg-bg-hover rounded-md p-0.5 border border-border">
@@ -250,7 +250,7 @@ export function CalendarView({
           >
             <ChevronRight className="w-4 h-4" />
           </button>
-          <div className="text-sm font-medium capitalize px-3 min-w-[180px] text-center">
+          <div className="text-xs sm:text-sm font-medium capitalize px-2 sm:px-3 sm:min-w-[180px] text-center order-last w-full sm:w-auto sm:order-none">
             {view === "week" ? weekLabel : monthLabel}
           </div>
           <button
@@ -266,7 +266,7 @@ export function CalendarView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-2 sm:p-4 lg:p-6">
         <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden border border-border">
           {["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((d) => (
             <div

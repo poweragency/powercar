@@ -43,7 +43,7 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-8 py-4 border-b border-border flex items-center gap-3 flex-wrap">
+      <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-border flex items-center gap-2 sm:gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold">Clienti</h1>
           <p className="text-xs text-text-subtle">
@@ -61,7 +61,7 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Cerca cliente, telefono, email..."
-              className="input-base pl-8 w-72"
+              className="input-base pl-8 w-full sm:w-72"
             />
           </div>
           <button
@@ -79,7 +79,7 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 overflow-auto p-3 sm:p-6 lg:p-8">
         {rows.length === 0 ? (
           <EmptyState
             icon={Users}
@@ -87,8 +87,8 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
             description="I clienti vengono creati automaticamente quando un lead viene spostato nella colonna 'Cliente' del Kanban."
           />
         ) : (
-          <div className="card overflow-hidden">
-            <table className="w-full">
+          <div className="card overflow-x-auto">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-border bg-bg-hover/50">
                   <th className="text-left text-xs font-medium text-text-muted px-5 py-3">

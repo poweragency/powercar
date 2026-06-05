@@ -99,7 +99,7 @@ export function TeamView({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-8 py-4 border-b border-border flex items-center gap-3 flex-wrap">
+      <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-border flex items-center gap-2 sm:gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold">Team</h1>
           <p className="text-xs text-text-subtle">
@@ -160,7 +160,7 @@ export function TeamView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-8 max-w-4xl mx-auto w-full">
+      <div className="flex-1 overflow-auto p-3 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full">
         {tab === "members" ? (
           <div className="space-y-6">
             <Section

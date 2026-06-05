@@ -143,7 +143,7 @@ export function CasesTable({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-8 py-4 border-b border-border flex items-center gap-3 flex-wrap">
+      <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-border flex items-center gap-2 sm:gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold">
             {isEmployee ? "Le mie pratiche" : "Pratiche"}
@@ -167,7 +167,7 @@ export function CasesTable({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as CaseStatus | "all")}
-              className="input-base w-44"
+              className="input-base w-full sm:w-44"
             >
               <option value="all">Tutti gli stati</option>
               {CASE_STATUS_ORDER.filter((s) => s !== "liquidato").map((s) => (
@@ -187,7 +187,7 @@ export function CasesTable({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Cerca cliente, targa, assicurazione..."
-              className="input-base pl-8 w-72"
+              className="input-base pl-8 w-full sm:w-72"
             />
           </div>
           {!isEmployee && (
@@ -312,9 +312,9 @@ export function CasesTable({
         </div>
       )}
 
-      <div className="flex-1 overflow-auto p-8">
-        <div className="card overflow-hidden">
-          <table className="w-full">
+      <div className="flex-1 overflow-auto p-3 sm:p-6 lg:p-8">
+        <div className="card overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-border bg-bg-hover/50">
                 <th className="text-left text-xs font-medium text-text-muted px-5 py-3">

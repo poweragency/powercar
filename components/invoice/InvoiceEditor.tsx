@@ -293,8 +293,8 @@ export function InvoiceEditor({
   );
 
   return (
-    <div className="max-w-4xl mx-auto p-8 pb-40 sm:pb-32">
-      <div className="sticky top-0 -mx-8 px-8 py-2 bg-bg/95 backdrop-blur z-20 border-b border-border/50 mb-4">
+    <div className="max-w-4xl mx-auto p-3 sm:p-6 lg:p-8 pb-40 sm:pb-32">
+      <div className="sticky top-0 -mx-3 sm:-mx-6 lg:-mx-8 px-3 sm:px-6 lg:px-8 py-2 bg-bg/95 backdrop-blur z-20 border-b border-border/50 mb-4">
         <Breadcrumb
           items={[
             { label: "Pratiche", href: "/cases" },

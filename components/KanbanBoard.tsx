@@ -201,7 +201,7 @@ export function KanbanBoard({ initialLeads }: Props) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-8 py-4 border-b border-border flex items-center gap-3">
+      <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-border flex items-center gap-2 sm:gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold">Lead</h1>
           <p className="text-xs text-text-subtle">
@@ -221,7 +221,7 @@ export function KanbanBoard({ initialLeads }: Props) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Cerca..."
-              className="input-base pl-8 w-56"
+              className="input-base pl-8 w-full sm:w-56"
             />
           </div>
           <button
