@@ -38,10 +38,10 @@ npm run types        # rigenera types/database.types.ts (richiede supabase CLI)
   (1 owner + N dipendenti). `profiles` estende `auth.users` e porta `workshop_id` + `role`.
   La tabella `workshops` è la fonte di verità per i dati del workshop (incluse le
   credenziali Facebook). Le RLS isolano i dati per tenant.
-  > Nota: il README descrive ancora il vecchio modello "una carrozzeria = un account
-  > (`owner_id`)". È **parzialmente storico** — le tabelle business usano `owner_id` per
-  > la RLS, ma sopra c'è il layer team/ruoli con `workshop_id`. In caso di dubbio,
-  > **leggi le migrations in `supabase/migrations/`**, non il README.
+  > Nota: il README è stato allineato al modello reale (workshops + team/ruoli) l'11/06/2026.
+  > Le tabelle business usano ancora `owner_id` per la RLS, col layer team/ruoli sopra via
+  > `workshop_id`. Per i dettagli fini del DB la verità restano **le migrations in
+  > `supabase/migrations/`**.
 - **Ruoli** (`lib/roles.ts`): `owner` + dipendenti `preparatore`/`verniciatore`/`finitore`.
   Ogni mansione vede solo la propria fase di lavorazione della pratica
   (`preparazione → verniciatura → finitura → controllo_titolare → completata`).
