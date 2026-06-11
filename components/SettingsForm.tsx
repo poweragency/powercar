@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Save, Copy, Check, ChevronDown } from "lucide-react";
+import { Save, Copy, Check, ChevronDown, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { profileFormSchema, type ProfileFormValues } from "@/lib/schemas";
@@ -50,6 +50,10 @@ export function SettingsForm({
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [showGuide, setShowGuide] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  // Stato "token impostato": parte dal valore lato server e diventa true dopo un
+  // collegamento automatico riuscito (così hint/placeholder si aggiornano subito).
+  const [tokenSet, setTokenSet] = useState(hasAccessToken);
 
   function setField<K extends keyof ProfileFormValues>(
     key: K,
@@ -126,6 +130,37 @@ export function SettingsForm({
     setSavedAt(Date.now());
     setTimeout(() => setSavedAt(null), 2500);
     toast.success("Impostazioni salvate");
+  }
+
+  async function handleAutoConnect() {
+    const pageId = (form.fb_page_id ?? "").trim();
+    if (!pageId) {
+      toast.error("Inserisci prima l'ID Pagina Facebook");
+      return;
+    }
+    setConnecting(true);
+    try {
+      const res = await fetch("/api/fb/connect-page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page_id: pageId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        toast.error("Collegamento non riuscito", {
+          description: json?.error ?? "Riprova o incolla il token a mano qui sotto.",
+        });
+        return;
+      }
+      setTokenSet(true);
+      toast.success(`Collegata: ${json.pageName}`, {
+        description: "La pagina riceverà i lead automaticamente.",
+      });
+    } catch {
+      toast.error("Errore di rete, riprova.");
+    } finally {
+      setConnecting(false);
+    }
   }
 
   function copyToClipboard(value: string, key: string) {
@@ -317,11 +352,36 @@ export function SettingsForm({
           />
         </Field>
 
+        <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 space-y-2">
+          <p className="text-sm text-text-muted">
+            Inserisci l&apos;ID Pagina qui sopra e collega tutto con un click: generiamo
+            noi il token e attiviamo i lead automaticamente.
+          </p>
+          <button
+            type="button"
+            onClick={handleAutoConnect}
+            disabled={connecting || !form.fb_page_id}
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {connecting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Link2 className="w-4 h-4" />
+            )}
+            {connecting ? "Collegamento..." : "Collega automaticamente"}
+          </button>
+          <p className="text-[11px] text-text-subtle">
+            Prima serve aver portato la pagina nel Business Manager e assegnata al System
+            User. Se il collegamento automatico non va, puoi sempre incollare il token a
+            mano qui sotto.
+          </p>
+        </div>
+
         <Field
-          label="Token di accesso Pagina"
+          label="Token di accesso Pagina (manuale, fallback)"
           error={errors.fb_page_access_token}
           hint={
-            hasAccessToken
+            tokenSet
               ? "Un token è già impostato. Lascia vuoto per mantenerlo; digita un nuovo token solo per sostituirlo."
               : "Per sicurezza il token, una volta salvato, non è più leggibile."
           }
@@ -334,7 +394,7 @@ export function SettingsForm({
               setField("fb_page_access_token", e.target.value.trim() || null)
             }
             className="input-base font-mono text-sm"
-            placeholder={hasAccessToken ? "•••••••• (già impostato)" : "EAAxxxxx..."}
+            placeholder={tokenSet ? "•••••••• (già impostato)" : "EAAxxxxx..."}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
