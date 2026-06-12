@@ -1,4 +1,3 @@
-import { Wrench } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { SavedAccountsList } from "@/components/auth/SavedAccountsList";
 import { readSavedAccountsPublic } from "@/lib/auth/saved-accounts";
@@ -26,9 +25,14 @@ export default async function LoginPage({ searchParams }: Props) {
     <div className="min-h-screen flex items-center justify-center bg-bg p-6">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-            <Wrench className="w-5 h-5 text-white" strokeWidth={2.5} />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icon-192.png"
+            alt="PowerCar"
+            width={40}
+            height={40}
+            className="w-10 h-10 rounded-lg"
+          />
           <div>
             <h1 className="text-lg font-semibold">CRM Officina</h1>
             <p className="text-xs text-text-subtle">Gestione lead & pratiche</p>
@@ -55,11 +59,17 @@ export default async function LoginPage({ searchParams }: Props) {
         </div>
 
         <p className="mt-6 text-center text-xs text-text-subtle">
-          <a href="/privacy" className="hover:text-text">Privacy</a>
+          <a href="/privacy" className="hover:text-text">
+            Privacy
+          </a>
           {" · "}
-          <a href="/cookie" className="hover:text-text">Cookie</a>
+          <a href="/cookie" className="hover:text-text">
+            Cookie
+          </a>
           {" · "}
-          <a href="/termini" className="hover:text-text">Termini</a>
+          <a href="/termini" className="hover:text-text">
+            Termini
+          </a>
         </p>
       </div>
     </div>
