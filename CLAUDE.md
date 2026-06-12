@@ -122,3 +122,13 @@ Tracciate in [TODO-SICUREZZA.md](TODO-SICUREZZA.md). In sintesi, non rompere:
 Prima di proporre, **leggi il codice/schema reali** (le migrations sono la verità sul DB).
 Per modifiche non banali proponi il piano e attendi conferma. Commit in italiano. Prima di
 `git push` chiedi se fare un test locale o pushare subito (salvo preferenza già espressa).
+
+## Icone, logo e favicon
+
+Set stile Power Hub (monogramma **PC** bianco su nero `#0a0a0a`): `public/icon-192.png`,
+`icon-512.png`, `icon-maskable-512.png` (safe zone ~80%) + `app/apple-icon.png` (180) e
+`app/icon.png` (favicon via convention, copia di `icon-192.png` — tenerle allineate).
+PWA: `app/manifest.ts` (standalone) + `appleWebApp`/`themeColor` in `app/layout.tsx`.
+Logo prodotto = `/icon-192.png` nella **login**; dentro la shell vince il logo del
+workshop/tenant (`logo_url`), per design multi-tenant.
+Pattern: `Z:\SECOND-BRAIN\sources\stack\pattern-icone-pwa-progetto.md`.
