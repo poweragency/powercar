@@ -6,7 +6,8 @@ import { Wrench } from "lucide-react";
  * Fonte: visura Camera di Commercio MI — impresa individuale Amore Vincenzo.
  */
 export const COMPANY = {
-  legalName: "Amore Vincenzo",
+  // Denominazione univoca (standard ecosistema PA, 09/07/2026): SEMPRE questa nelle righe legali/footer.
+  legalName: "Power Agency di Vincenzo Amore",
   tradeName: "Power Agency",
   address: "Via Giuseppe Parini 2, 20019 Settimo Milanese (MI), Italia",
   vat: "12497340963",
@@ -15,7 +16,7 @@ export const COMPANY = {
   pec: "poweragency@pec.it",
   email: "info@poweragency.it",
   identifier:
-    "Amore Vincenzo, impresa individuale operante con il nome commerciale «Power Agency», con sede legale in Via Giuseppe Parini 2, 20019 Settimo Milanese (MI), Italia — P.IVA 12497340963 — C.F. MRAVCN95C27F839R — REA MI-2675736 — PEC poweragency@pec.it",
+    "Power Agency di Vincenzo Amore (impresa individuale), con sede legale in Via Giuseppe Parini 2, 20019 Settimo Milanese (MI), Italia — P.IVA 12497340963 — C.F. MRAVCN95C27F839R — REA MI-2675736 — PEC poweragency@pec.it",
 } as const;
 
 export type LegalSection = { heading: string; body: React.ReactNode[] };
@@ -47,7 +48,10 @@ export function LegalShell({
             <section key={s.heading}>
               <h2 className="text-lg font-semibold mb-3">{s.heading}</h2>
               {s.body.map((p, i) => (
-                <div key={i} className="text-[0.95rem] leading-relaxed text-text-muted mb-3">
+                <div
+                  key={i}
+                  className="text-[0.95rem] leading-relaxed text-text-muted mb-3"
+                >
                   {p}
                 </div>
               ))}
@@ -56,11 +60,21 @@ export function LegalShell({
         </div>
 
         <div className="mt-12 pt-6 border-t border-border flex flex-wrap gap-5 text-sm text-text-subtle">
-          <Link href="/privacy" className="hover:text-text">Privacy</Link>
-          <Link href="/cookie" className="hover:text-text">Cookie</Link>
-          <Link href="/termini" className="hover:text-text">Termini</Link>
-          <Link href="/login" className="hover:text-text">Accedi</Link>
-          <span className="ml-auto">© 2026 {COMPANY.tradeName} · P.IVA {COMPANY.vat}</span>
+          <Link href="/privacy" className="hover:text-text">
+            Privacy
+          </Link>
+          <Link href="/cookie" className="hover:text-text">
+            Cookie
+          </Link>
+          <Link href="/termini" className="hover:text-text">
+            Termini
+          </Link>
+          <Link href="/login" className="hover:text-text">
+            Accedi
+          </Link>
+          <span className="ml-auto">
+            © 2026 {COMPANY.legalName} · P.IVA {COMPANY.vat}
+          </span>
         </div>
       </div>
     </div>
